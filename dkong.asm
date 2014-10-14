@@ -1,163 +1,170 @@
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; Disassembly of the file "E:\Mame32\roms\dkong-hacked\dkongfull.bin"
+; Originally disassembled with dZ80 v1.31
 ;
-; Created with dZ80 v1.31
+; Memory map:
+;   $0000-3fff ROM
+;   $6000-6fff RAM
+;   $6900-6A7f sprites
+;   $7000-73ff unknown; probably not used
+;   $7400-77ff Video RAM
+;       top left corner:      $77A0
+;       bottom left corner:   $77BF
+;       top right corner:     $7440
+;       bottom right corner:  $745F
 ;
-; on Tuesday, 30 of October 2007 at 11:22 PM
+;   Note that the monitor is rotated 90 degrees, so $77A1 is the tile under
+;   $77A0, not the tile to the right of it.
+
+
+; I/O ports
+IN0         equ     $7c00       ; player 1 joystick and jump button
+IN1         equ     $7c80       ; player 2 joystick and jump button
+IN2         equ     $7d00       ; coins; start buttons
+DSW1        equ     $7d80       ; DIP switches
+
+; IN0 and IN1:
+;   bit 7 : ?
+;   bit 6 : reset
+;   bit 5 : ?
+;   bit 4 : JUMP
+;   bit 3 : DOWN
+;   bit 2 : UP
+;   bit 1 : LEFT
+;   bit 0 : RIGHT
 ;
-;
-; #0000-3fff ROM
-; #6000-6fff RAM
-; #6900-6A7f sprites
-; #7000-73ff ?
-; #7400-77ff Video RAM
-        ; top left corner:      #77A0
-        ; bottom left corner:   #77BF
-        ; top right corner:     #7440
-        ; bottom right corner:  #745F
+; (IN0 is read on player 1's turn; IN1 is read on player 2's turn)
+
+; IN2:
+;   bit 7: COIN
+;   bit 6: ? Radarscope does some wizardry with this bit
+;   bit 5 : ?
+;   bit 4 : ?
+;   bit 3 : START 2
+;   bit 2 : START 1
+;   bit 1 : ?
+;   bit 0 : ? if this is 1, the code jumps to $4000, outside the rom space
+
+; DSW1:
+;   bit 7 : COCKTAIL or UPRIGHT cabinet (1 = UPRIGHT)
+;   bit 6 : \ 000 = 1 coin 1 play   001 = 2 coins 1 play  010 = 1 coin 2 plays
+;   bit 5 : | 011 = 3 coins 1 play  100 = 1 coin 3 plays  101 = 4 coins 1 play
+;   bit 4 : / 110 = 1 coin 4 plays  111 = 5 coins 1 play
+;   bit 3 : \bonus at
+;   bit 2 : / 00 = 7000  01 = 10000  10 = 15000  11 = 20000
+;   bit 1 : \ 00 = 3 lives  01 = 4 lives
+;   bit 0 : / 10 = 5 lives  11 = 6 lives
+
+; 7800-780F P8257 Control registers
+; @TODO@ -- define constants for this
 
 
+REG_MUSIC       equ $7c00
 
-  115  memory mapped ports:
-  116  
-  117  read:
-  118  7C00      IN0
-  119  7C80      IN1
-  120  7D00      IN2 (DK3: DSW2)
-  121  7D80      DSW1
+; Values written to REG_MUSIC
+MUS_NONE        equ $00
+MUS_INTRO       equ $01     ; Music when DK climbing ladder
+MUS_HOWHIGH     equ $02     ; How high can you get?
+MUS_OUTATIME    equ $03     ; Running out of time
+MUS_HAMMER      equ $04     ; Hammer music
+MUS_ENDING1     equ $05     ; Music after beating even-numbered rivet levels
+MUS_HAMMERHIT   equ $06     ; Hammer hit
+MUS_FANFARE     equ $07     ; Music for completing a non-rivet stage
+MUS_25M         equ $08     ; Music for barrel stage
+MUS_50M         equ $09     ; Music for pie factory
+MUS_75M         equ $0a     ; Music for elevator stage (or lack thereof)
+MUS_100M        equ $0b     ; Music for rivet stage
+MUS_ENDING2     equ $0c     ; Music after beating odd-numbered rivet levels
+MUS_RM_RIVET    equ $0d     ; "Rivet removed" sound effect
+MUS_DK_FALLS    equ $0e     ; Music when DK is about to fall in rivet stage
+MUS_DK_ROAR     equ $0f     ; Zerbert. Zerbert. Zerbert.
 
-  124   * IN0 (bits NOT inverted)
-  125   * bit 7 : ?
-  126   * bit 6 : reset (when player 1 active)
-  127   * bit 5 : ?
-  128   * bit 4 : JUMP player 1
-  129   * bit 3 : DOWN player 1
-  130   * bit 2 : UP player 1
-  131   * bit 1 : LEFT player 1
-  132   * bit 0 : RIGHT player 1
+; Sound effects get their own registers
+SFX_WALK        equ $7d00
+SFX_JUMP        equ $7d01
+SFX_BOOM        equ $7d02   ; DK pounds ground; barrel hits Mario
+SFX_SPRING      equ $7d03
+SFX_FALL        equ $7d04
+SFX_POINTS      equ $7d05   ; Got points, grabbed the hammer, etc.
+SFX_UNKNOWN1    equ $7d06   ; not used
+SFX_UNKNOWN2    equ $7d07   ; not used
+SFX_DEATH       equ $7d80   ; Mario dies
 
+; Some other hardware registers
+REG_FLIPSCREEN      equ $7d82
+REG_SPRITE          equ $7d83   ; @TODO@ -- what does this do, exactly?
+REG_VBLANK_ENABLE   equ $7d84
+REG_DMA             equ $7d85   ; @TODO@ -- what does this do, exactly?
 
-        * IN1 (bits NOT inverted)
-  136   * bit 7 : ?
-  137   * bit 6 : reset (when player 2 active)
-  138   * bit 5 : ?
-  139   * bit 4 : JUMP player 2
-  140   * bit 3 : DOWN player 2
-  141   * bit 2 : UP player 2
-  142   * bit 1 : LEFT player 2
-  143   * bit 0 : RIGHT player 2
-
-
-  146   * IN2 (bits NOT inverted)
-  147   * bit 7 : COIN (IS inverted in Radarscope)
-  148   * bit 6 : ? Radarscope does some wizardry with this bit
-  149   * bit 5 : ?
-  150   * bit 4 : ?
-  151   * bit 3 : START 2
-  152   * bit 2 : START 1
-  153   * bit 1 : ?
-  154   * bit 0 : ? if this is 1, the code jumps to $4000, outside the rom space
-
-
-
-  157   * DSW1 (bits NOT inverted)
-  158   * bit 7 : COCKTAIL or UPRIGHT cabinet (1 = UPRIGHT)
-  159   * bit 6 : \ 000 = 1 coin 1 play   001 = 2 coins 1 play  010 = 1 coin 2 plays
-  160   * bit 5 : | 011 = 3 coins 1 play  100 = 1 coin 3 plays  101 = 4 coins 1 play
-  161   * bit 4 : / 110 = 1 coin 4 plays  111 = 5 coins 1 play
-  162   * bit 3 : \bonus at
-  163   * bit 2 : / 00 = 7000  01 = 10000  10 = 15000  11 = 20000
-  164   * bit 1 : \ 00 = 3 lives  01 = 4 lives
-  165   * bit 0 : / 10 = 5 lives  11 = 6 lives
+; Palette selectors
+; @TODO@ -- describe
+PAL_SEL_BANK0       equ $7d86
+PAL_SEL_BANK1       equ $7d87
 
 
+; Machine accepts no more than 90 credits (this is a BCD value)
+MAX_CREDITS     equ $90
 
 
+RAM             equ $6000
 
-  169  7800-780F P8257 Control registers
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+; NOTE!
+; Donkey Kong's code is a little nutty and often depends on variables
+; being stored in a certain way. For instance, if there's a variable at
+; RAM+$a, it may do "DEC HL" to get at the variable at RAM+9, even
+; if these variables are loosely related at best. If you're making a
+; hack, we strongly suggest you keep the addresses of existing variables
+; intact!
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
+; Number of credits in BCD. Can't go over MAX_CREDITS.
+NumCredits      equ RAM+1
 
-       7C00
-  170            Background sound/music select:
-  171            00 - nothing
-  172            01 - Intro tune
-  173            02 - How High? (intermisson) tune
-  174            03 - Out of time
-  175            04 - Hammer
-  176            05 - Rivet level 2 completed (end tune)
-  177            06 - Hammer hit
-  178            07 - Standard level end
-  179            08 - Background 1 (girders)
-  180            09 - Background 2 (conveyors)
-  181            0A - Background 3 (elevators)
-  182            0B - Background 4 (rivets)
-  183            0C - Rivet level 1 completed (end tune)
-  184            0D - Rivet removed
-  185            0E - Rivet level completed
-  186            0F - Gorilla roar
-  187  7C80      gfx bank select (Donkey Kong Jr. only)
+; Counts number of coins inserted until next credit is reached
+; E.g., if the machine is set to 4 coins/credit, this starts at 0 and counts up to 4 with each coin.
+; When it's 4, it'll be reset to 0 and a credit will be added.
+CoinCounter     equ RAM+2
 
-  188  7D00      digital sound trigger - walk
-  189  7D01      digital sound trigger - jump
-  190  7D02      digital sound trigger - boom (gorilla stomps foot)
-  191  7D03      digital sound trigger - coin input/spring
-  192  7D04      digital sound trigger - gorilla fall / bouncer fall
-  193  7D05      digital sound trigger - barrel jump/prize
-  194  7D06      ?
-  195  7D07      ?
-  196  7D80      digital sound trigger - dead
-  197  7D82      flip screen
-  198  7D83      AM_RANGE(0x7D83, 0x7D83) AM_WRITE(dkong_spritebank_w)                         /* 2 PSL Signal */
-  199  7D84      interrupt enable
-  200  7D85      0/1 toggle AM_RANGE(0x7D85, 0x7D85) AM_DEVWRITE("dmA8257", p8257_drq_w)          /* P8257 ==> /DRQ0 /DRQ1 */
-  201  7D86-7D87 palette bank selector (only bit 0 is significant: 7D86 = bit 0 7D87 = bit 1)
+; Usually 1. When a coin is inserted, it changes to 0 momentarily.
+; (Play in MAME and look in the debugger. This value will be 0 while the coin key is held down.)
+CoinSwitch      equ RAM+3
 
-  
-  204  8035 Memory Map: (modified 8048)
-  205  
-  206  0000-07ff ROM
-  207  0800-0Fff Compressed sound sample (Gorilla roar in DKong)
-  208  
-  209  Read ports:
-  210  0x20   Read current tune
-  211  P2.5   Active low when jumping
-  212  T0     Select sound for jump (Normal or Barrell?)
-  213  T1     Active low when gorilla is falling
-  214  
-  215  Write ports:
-  216  P1     Digital out
-  217  P2.7   External DECay
-  218  P2.6   Select second ROM reading (MOVX instruction will access area 800-fff)
-  219  P2.2-0 Select the bank of 256 bytes for second ROM
+; 1 when in attract mode, 2 when credits in waiting for start, 3 when playing game
+GameMode1       equ RAM+5
 
+; 1 when no credits have been inserted, 0 if any credits exist or a game is being played
+NoCredits       equ RAM+7
 
-; #6001 is number of credits in BCD.  can't go more than 90
+; General-purpose timer. 16-bit. The code uses the MSB rather than the LSB for 8-bit timers.
+WaitTimer       equ RAM+8
+WaitTimerLSB    equ WaitTimer
+WaitTimerMSB    equ WaitTimer+1
 
-; #6002 is used for number of credits/coin ?
+; Attract mode: $1
+; Intro: $7
+; How High Can You Get?: $a
+; Right before play: $b
+; During play: $c
+; Dead: $d
+; Game over: $10
+; Rivets cleared: $16
+; @TODO@ -- list is not complete. Range is [0..$17], and most, possibly all, values seem to be used
+GameMode2       equ RAM+$a
 
-; #6003 is 1 usually.  When a coin is inserted it changes to 0 mometarily
+; Both of these are 0 if it's player 1's turn, and 1 if it's player 2's turn.
+; @TODO@ -- try to find why these are two variables and give them better names.
+PlayerTurnA     equ RAM+$d
+PlayerTurnB     equ RAM+$e
 
-; #6005 is 1 when in attract mode.  2 when credits in waiting for start, 3 when playing game (game mode1)
+; 0 if 1-player game, 1 if 2-player game
+TwoPlayerGame   equ RAM+$f
 
-; #6007 is 1 when no credits have been inserted.  is zero if any credit exist or a game is being played
+; The same as RawInput below, except when jump is pressed, bit 7 is set momentarily
+InputState    equ RAM+$10
 
-; #6008 is a timer used during the attract mode, it counts down twice and then the next attract screen is drawn
-
-; #6009 is a timer that counts down after mario dies for drawing the screen and playing sounds
-
-; #600A = 1 during attract mode, 7 during intro , A during how high can u get,
-                B right before play, C during play, D when dead, 10 when game over, 16 when rivets is cleared (game mode2)
-
-; #600D = 0 when player 1 is up, = 1 when player 2 is up
-
-; #600E = 0 when player 1 is up, = 1 when player 2 is up
-
-; #600F = 0 on a 1 player game, 1 on a 2 player game
-
-; #6010 - copy of input (see #6011). except when jump pressed, bit 7 is set momentarily.
-
-; #6011 - input.  right sets bit 0, left sets bit 1, up sets bit 2, down sets bit 3, jump sets bit 4
+; Right sets bit 0, left sets bit 1, up sets bit 2, down sets bit 3, jump sets bit 4
+RawInput      equ RAM+$11
 
 ; #6018 = constantly changing ... timer of some sort?
 
@@ -165,7 +172,7 @@
 
 ; #601A - Timer constantly counts down from FF to 00 and then FF to 00 again and again ... 1 count per frame
 
-; #6020 = initial number of lives ( set with dip switches)
+; #6020 = initial number of lives (set with dip switches)
 
 ; #6021 = score needed for bonus life in thousands
 
@@ -177,13 +184,13 @@
 
 ; #6035 = coded high score entry digit selected 0 to #1D
 
-; #6036,7 = address of screen RAM for current initial being entered 
+; #6036,7 = address of screen RAM for current initial being entered
 
 ; #6038 = ???
 
 ; #6040 = number of lives remaining ... (see #6228)
 
-; #6041 = 
+; #6041 =
 
 ; #6048 = number of lives for player 2
 
@@ -203,27 +210,10 @@
 
 ; #6085 = 1 when the bonus sound is played
 
-; #6086 = 
+; #6086 =
 
 ; #6089 = used to determine which music is played: (not all used during play?)
 ; #608A is used for same?
-
-#01 = scary music at start when kong climbs the dual ladders
-#02 = how high can you get tune
-#03 = low timer warning
-#04 = hammer time
-#05 = when even numbered rivets are done
-#06 = object being smashed with hammer
-#07 = tune played when mario reaches end of level (not rivets). nice tune + X X X
-#08 = girders tune
-#09 = conveyors tune
-#0A = nothing ??? used for elevators
-#0B = rivets tune
-#0C = when odd numbered rivets are done
-#0D = jumping over barrel sound
-#0E = end of rivets when girders fall and kong beats chest
-#0F = X X X (sound made by kong when he takes girl away)
-
 
 ; #60B0 and #60B1 are some sort of counter.  counts from #C0 192 (decimal) to #FE (256) by twos, then again and again.  Related to #60C0 - #60FF ?
 
@@ -267,9 +257,9 @@
 
 ; #6211 = 0 when jumping straight up, #80 when jumping left or right
 
-; #6212 = 
+; #6212 =
 
-; #6214 = is counted from 0 while mario is jumping.  
+; #6214 = is counted from 0 while mario is jumping.
 
 ; #6215 is 1 when mario is on ladder, 0 otherwise
 
@@ -289,7 +279,7 @@
 
 ; #6220 = set to 1 when mario falls too far, 0 otherwise
 
-; #6221 
+; #6221
 
 ; #6222 = toggles between 0 and 1 when mario on ladder.  otherwise 0
 
@@ -329,9 +319,9 @@
 
 ; #62A8
 
-; #62AA 
+; #62AA
 
-; #62AC - 
+; #62AC -
 
 ; #62AF = some sort of timer connected with the barrels counts down from 18 to 00 , then kong moves position for next barrel grab  See #638F
 ; continued  also used for counter during game intro, used for kong animation
@@ -348,9 +338,9 @@
 
 ; level 1 barrels 4700 bonus lasts 94 seconds = 100 bonus every 2 seconds
 ; level 2 barrels 5700 bonus lasts 105 seconds = 100 bonus every 1.842 seconds ???
-; level 3 barerls 6700 bonus lasts 93 seconds = 100 bonus every 1.388 seconds
+; level 3 barrels 6700 bonus lasts 93 seconds = 100 bonus every 1.388 seconds
 ; level 4 barrels 7700 bonus lasts 130 seconds = 100 bonus every 5/3 seconds 1.666 ?
-; 
+;
 
 ; #62B4 a timer used on conveyors ?
 
@@ -376,9 +366,9 @@
 
 ; #6351 through #6354 used for temp storage for items hit with hammer
 
-; #6380 - Internal dificulty. Dictates speed of fires, wild barrel behavior, barrel steerability and other things. Ranges from 1 to 5.
+; #6380 - Internal difficulty. Dictates speed of fires, wild barrel behavior, barrel steerability and other things. Ranges from 1 to 5.
 
-; #6381 = timer that conrols when #6380 changes ?
+; #6381 = timer that controls when #6380 changes ?
 
 ; #6382 = 00 and turns to 80 when a blue barrel is about to be deployed.
 ;         First blue barrel has this at 81 and then 02.  changes to 1 for crazy barrel
@@ -510,7 +500,7 @@
 ; +1F - When a fireball is climbing up or down a ladder, this stores the Y-position of the other end of the ladder (the end the fireball is headed
 ;       towards).
 
-; #64A7 - 
+; #64A7 -
 
 ; #6500 - #65AF = the ten bouncer values, 6510, 6520, etc. are starting values
 ;        +3 is the X pos, +5 is the Y pos
@@ -520,9 +510,9 @@
 ; #6600 - 665F  = the 6 elevator values.  6610, 6620, 6630, 6640 ,6650 are starting values
 ;       + 3 is the X position, + 5 is the Y position
 
-; #6680 - 
+; #6680 -
 
-; #6687 - 
+; #6687 -
 
 ; #6688
 
@@ -563,11 +553,11 @@
 
 ; #6711 = 60 when barrel is rolling around the right edge, A0 when rolling around left edge
 
-; 
+;
 
-; #6714 = 
+; #6714 =
 
-; #6715 = 
+; #6715 =
 
 ; #6717 = position of next ladder it is going down or the ladder it just passed.
 ; ladders are :  70, 6A, 93, 8D, 8B, B3, B0, AC, D1, CD, F3, EE
@@ -578,7 +568,7 @@
 
 ; #6908 - (#6908 + #28) = animation states for kong and maybe other things
         ; #6909 - kong's right leg
-        ; #6913 - 
+        ; #6913 -
         ; #6919 - kong's mouth
         ; #691D - kong's right arm
         ; #692D - girl under kong's arms during game intro
@@ -621,7 +611,7 @@
 1A, 1B = barrel going down ladder or crazy
 1C, 1D = blank ?
 1E = hammer
-1F = smashing down hammer 
+1F = smashing down hammer
 20, 21, 22 = crazy kong face
 23 = kong face, frowning
 24 = kong face, growling
@@ -668,14 +658,14 @@
 4E = firefox (2)
 4F = blanK?
 50 = edge of conveyor pulley
-51 = edge of conveyor pulley (2) 
+51 = edge of conveyor pulley (2)
 52 = edge of conveyor pulley (3)
 53 - 5F = blank ?
 60 = circle for item being hit with hammer
 61 = small circle for item being hit with hammer
 62 = smaller circle for item being hit with hammer
 63 = burst for item being hit with hammer
-64 - 71  = blank 
+64 - 71  = blank
 72 = square for hiscore select
 73 = hat
 74 = purse
@@ -685,7 +675,7 @@
 78 = dying, mario upside down
 79 = dying, mario head to right
 7A = mario dead
-7B = 100 
+7B = 100
 7C = 200
 7D = 300
 7E = 500
@@ -698,7 +688,7 @@ all values from 80-FF are mirror images of items 0 -7F
 83 = mario on ladder with right hand up
 84 = mario on ladder with butt showing
 85 = mario on ladder with butt showing (2)
-86 = 
+86 =
 88 = mario with hammer up, facing right
 89 = mario with hammer down, facing right
 8A = mario with hammer up, facing right
@@ -724,7 +714,7 @@ C = blue
 D = orange
 E = blue
 F = black
-10 = 
+10 =
 
 ; #6980 - X position of a barrel and bouncers (all sprites??) , #6981 = sprite type? , 2= sprite color?, #6983 = Y position
 ; Add 4 to each barrel/sprite in question up to #6A08
@@ -764,9 +754,9 @@ F = black
 
 ; #7D85 = AM_RANGE(0x7D85, 0x7D85) AM_DEVWRITE("dmA8257", p8257_drq_w)          /* P8257 ==> /DRQ0 /DRQ1 */
 
-; #7D86, 7D87 = screen color ( 0= regular, 1 = blue for rivets)
+; PAL_SEL_BANK0, 7D87 = screen color ( 0= regular, 1 = blue for rivets)
 
-; characters data 
+; characters data
 
 00 - 09 = 0 - 9
 10 = empty
@@ -867,16 +857,16 @@ FF = Extra Mario Icon
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
-0000  3E00      LD      A,#00           ; A := 0
-0002  32847D    LD      (#7D84),A       ; disable interrupts
-0005  C36602    JP      #0266           ; skip ahead
+                LD      A,#00                           ; A := 0
+                LD      (REG_VBLANK_ENABLED),A          ; disable interrupts
+                JP      Init                            ; skip ahead
 
 ;
 ; RST     #8
 ; if there are credits or the game is being played it returns immediately.  if not, it returns to higher subroutine
 ;
 
-0008  3A0760    LD      A,(#6007)       ; load A with 1 when no credits have been inserted.  is zero if any credit exist or game is being played
+0008  3A0760    LD      A,(NoCredits)   ; load A with 1 when no credits have been inserted, 0 if any credits exist or game is being played
 000B  0F        RRCA                    ; any credits in the game ?
 000C  D0        RET     NC              ; yes, return
 
@@ -901,19 +891,19 @@ FF = Extra Mario Icon
 ; RST     #18
 ;
 
-0018  210960    LD      HL,#6009        ; load timer that counts down
+0018  210960    LD      HL,WaitTimerMSB ; load timer that counts down
 001B  35        DEC     (HL)            ; Count it down...
 001C  C8        RET     Z               ; Return if zero
 
 001D  33        INC     SP              ; otherwise Increase SP twice
 001E  33        INC     SP
-001F  C9        RET                     ; and return - effictively returns to higher subroutine
+001F  C9        RET                     ; and return - effectively returns to higher subroutine
 
 ;
 ; RST     #20
 ;
 
-0020  210860    LD      HL,#6008        ; load HL with timer
+0020  210860    LD      HL,WaitTimerLSB ; load HL with timer
 0023  35        DEC     (HL)            ; count it down
 0024  28F2      JR      Z,#0018         ; If zero skip up and count down the other timer
 
@@ -974,7 +964,7 @@ FF = Extra Mario Icon
 ; used to check a screen number.  if it doesn't match, the 2nd level of subroutine is returned
 ; A is preloaded with the check value, in binary
 
-0044  212762    ld      HL,#6227        ; Load HL with address of Screen # 
+0044  212762    ld      HL,#6227        ; Load HL with address of Screen #
 0047  46        ld      B,(HL)          ; load B with Screen #, For B = 1 to screen # (1, 2, 3 or 4)
 
 0048  0F        RRCA                    ; Rotate A right with carry
@@ -1017,13 +1007,13 @@ FF = Extra Mario Icon
 
 006E  AF        XOR     A               ; A := 0
 006F  32847D    LD      (#7D84),A       ; disable interrupts
-0072  3A007D    LD      A,(#7D00)       ; load A with Credit/Service/Start Info
+0072  3A007D    LD      A,(IN2)         ; load A with Credit/Service/Start Info
 0075  E601      AND     #01             ; is the Service button being pressed?
 0077  C20040    JP      NZ,#4000        ; yes, jump to #4000 [??? this would cause a crash ???]
 
-007A  213801    LD      HL,#0138        ; load HL with start of table data      
+007A  213801    LD      HL,#0138        ; load HL with start of table data
 007D  CD4101    CALL    #0141           ; refresh the P8257 Control registers / refresh sprites to hardware
-0080  3A0760    LD      A,(#6007)       ; load the credit indicator
+0080  3A0760    LD      A,(NoCredits)   ; load the credit indicator
 0083  A7        AND     A               ; are there credits present / is a game being played ?
 0084  C2B500    JP      NZ,#00B5        ; No, jump ahead
 
@@ -1031,26 +1021,26 @@ FF = Extra Mario Icon
 008A  A7        AND     A               ; upright ?
 008B  C29800    JP      NZ,#0098        ; yes, jump ahead
 
-008E  3A0E60    LD      A,(#600E)       ; else load A with player number
+008E  3A0E60    LD      A,(PlayerTurnB)       ; else load A with player number
 0091  A7        AND     A               ; is this player 2 ?
-0092  3A807C    LD      A,(#7C80)       ; load A with raw input from player 2
+0092  3A807C    LD      A,(IN1)         ; load A with raw input from player 2
 0095  C29B00    JP      NZ,#009B        ; yes, skip next step
 
-0098  3A007C    LD      A,(#7C00)       ; load A with raw input from player 1
+0098  3A007C    LD      A,(IN0)         ; load A with raw input from player 1
 009B  47        LD      B,A             ; copy to B
 009C  E60F      AND     #0F             ; mask left 4 bits to zero
 009E  4F        LD      C,A             ; copy this to C
-009F  3A1160    LD      A,(#6011)       ; load A with player input
+009F  3A1160    LD      A,(RawInput)       ; load A with player input
 00A2  2F        CPL                     ; The contents of A are inverted (one’s complement).
 00A3  A0        AND     B               ; logical and with raw input - checks for jump button
 00A4  E610      AND     #10             ; mask all bits but 4.  if jump was pressed it is there
-00A6  17        RLA                     
-00A7  17        RLA     
+00A6  17        RLA
+00A7  17        RLA
 00A8  17        RLA                     ; rotate left 3 times
 00A9  B1        OR      C               ; mix back into masked input
 00AA  60        LD      H,B             ; load H with B = raw input
 00AB  6F        LD      L,A             ; load L with A = modified input
-00AC  221060    LD      (#6010),HL      ; store into input memories, #6010 and #6011
+00AC  221060    LD      (InputState),HL      ; store into input memories, InputState and RawInput
 00AF  78        LD      A,B             ; load A with raw input
 00B0  CB77      BIT     6,A             ; is the bit 6 set for reset?
 00B2  C20000    JP      NZ,#0000        ; if reset, jump back to #0000 for a reboot
@@ -1062,11 +1052,11 @@ FF = Extra Mario Icon
 00BF  CDE000    CALL    #00E0           ; update all sounds
 00C2  21D200    LD      HL,#00D2        ; load HL with return address
 00C5  E5        PUSH    HL              ; push to stack so any RETs go there (#00D2)
-00C6  3A0560    LD      A,(#6005)       ; load A with game mode1
+00C6  3A0560    LD      A,(GameMode1)   ; load A with game mode1
 
-; #6005 is 0 when game is turned on, 1 when in attract mode.  2 when credits in waiting for start, 3 when playing game
+; GameMode1 is 0 when game is turned on, 1 when in attract mode.  2 when credits in waiting for start, 3 when playing game
 
-00C9  EF        RST     #28             ; jump based on above:
+                RST     #28             ; jump based on above:
 
 00CA  C3 01                             ; #01C3 = startup
 00CC  3C 07                             ; #073C = attract mode
@@ -1089,9 +1079,9 @@ FF = Extra Mario Icon
 ; called from #00BF
 ; updates all sounds
 
-00E0  218060    LD      HL,#6080        ; source data at sound buffer 
+00E0  218060    LD      HL,#6080        ; source data at sound buffer
 00E3  11007D    LD      DE,#7D00        ; set destination to sound outputs
-00E6  3A0760    LD      A,(#6007)       ; load A with credit indicator
+00E6  3A0760    LD      A,(NoCredits)   ; load A with credit indicator
 00E9  A7        AND     A               ; have credits been inserted / is there a game being played ?
 00EA  C0        RET     NZ              ; no, return [change to NOP to enable sound in demo ]
 
@@ -1126,7 +1116,7 @@ FF = Extra Mario Icon
 0109  2D        DEC     L               ; HL := #608A
 010A  7E        LD      A,(HL)          ; load A with this tune to use
 
-010B  32007C    LD      (#7C00),A       ; play music
+010B  32007C    LD      (REG_MUSIC),A   ; play music
 010E  218860    LD      HL,#6088        ; load HL with address/counter for mario dying sound
 0111  AF        XOR     A               ; A := 0
 0112  BE        CP      (HL)            ; compare.  is mario dying ?
@@ -1159,7 +1149,7 @@ FF = Extra Mario Icon
 012F  10FC      DJNZ    #012D           ; Next B
 
 0131  32807D    LD      (#7D80),A       ; clear the digital sound trigger (death)
-0134  32007C    LD      (#7C00),A       ; clear the sound output
+0134  32007C    LD      (REG_MUSIC),A   ; clear the sound output
 0137  C9        RET                     ; return
 
 ; data used in sub below
@@ -1209,12 +1199,12 @@ FF = Extra Mario Icon
 ; called from #00BC
 ; checks for and handles credits
 
-017B  3A007D    LD      A,(#7D00)       ; load A with IN2
+017B  3A007D    LD      A,(IN2)         ; load A with IN2
 017E  CB7F      BIT     7,A             ; is the coin switch active?
-0180  210360    LD      HL,#6003        ; load HL with coin switch indicator
+0180  210360    LD      HL,CoinSwitch   ; load HL with pointer to coin switch indicator
 0183  C28901    JP      NZ,#0189        ; yes, skip next 2 steps
 
-0186  3601      LD      (HL),#01        ; otherwise store 1 into coin switch indicator  -  this is for coin insertion   
+0186  3601      LD      (HL),#01        ; otherwise store 1 into coin switch indicator  -  this is for coin insertion
 0188  C9        RET                     ; return
 
 0189  7E        LD      A,(HL)          ; Load A with coin switch indicator
@@ -1223,8 +1213,8 @@ FF = Extra Mario Icon
 
 ; coin has been inserted
 
-018C  E5        PUSH    HL              ; else save HL to stack 
-018D  3A0560    LD      A,(#6005)       ; load A with game mode1
+018C  E5        PUSH    HL              ; else save HL to stack
+018D  3A0560    LD      A,(GameMode1)   ; load A with game mode1
 0190  FE03      CP      #03             ; is someone playing?
 0192  CA9D01    JP      Z,#019D         ; yes, skip ahead and don't play the sound
 
@@ -1234,20 +1224,20 @@ FF = Extra Mario Icon
 
 019D  E1        POP     HL              ; restore HL from stack
 019E  3600      LD      (HL),#00        ; store 0 into coin switch indicator - no more coins
-01A0  2B        DEC     HL              ; HL := #6002
+01A0  2B        DEC     HL              ; HL := CoinCounter
 01A1  34        INC     (HL)            ; increase this counter
-01A2  112460    LD      DE,#6024        ; load DE with # of coins needed per credit ?
+01A2  112460    LD      DE,#6024        ; load DE with # of coins needed per credit
 01A5  1A        LD      A,(DE)          ; load A with coins needed
-01A6  96        SUB     (HL)            ; subtract the value in 6002 ???  At zero ?
-01A7  C0        RET     NZ              ; no, return
+01A6  96        SUB     (HL)            ; has the player inserted enough coins for a new credit?
+01A7  C0        RET     NZ              ; yes, return (CoinCounter is now zero)
 
-01A8  77        LD      (HL),A          ; else store A
+01A8  77        LD      (HL),A          ; no; restore CoinCounter
 01A9  13        INC     DE              ; DE := #6025
-01AA  2B        DEC     HL              ; HL := #6001
-01AB  EB        EX      DE,HL           ; DE := #6001, HL := #6025
+01AA  2B        DEC     HL              ; HL := NumCredits
+01AB  EB        EX      DE,HL           ; DE := NumCredits, HL := #6025
 01AC  1A        LD      A,(DE)          ; load A with number of credits in BCD
-01AD  FE90      CP      #90             ; A >= #90 ? (max credits)
-01AF  D0        RET     NC              ; yes, return.  No more credits.
+01AD  FE90      CP      MAX_CREDITS     ; is the number of credits already maxed out?
+01AF  D0        RET     NC              ; yes; return
 
 01B0  86        ADD     A,(HL)          ; add number of credits with # of credits per coin
 01B1  27        DAA                     ; decimal adjust
@@ -1259,7 +1249,7 @@ FF = Extra Mario Icon
 ; table data used below in 01C6
 
 01BA  00 37 00 AA AA AA 50 76 00
-     
+
 ; this is called when the game is first turned on or reset from #00C9
 
 01C3  CD7408    CALL    #0874           ; clears the screen and sprites
@@ -1268,17 +1258,17 @@ FF = Extra Mario Icon
 01CC  010900    LD      BC,#0009        ; set counter to 9
 01CF  EDB0      LDIR                    ; copy 9 bytes above into #60B2-#60BB
 01D1  3E01      LD      A,#01           ; A := 1
-01D3  320760    LD      (#6007),A       ; store into credit indicator == no credits exist
+01D3  320760    LD      (NoCredits),A   ; store into credit indicator == no credits exist
 01D6  322962    LD      (#6229),A       ; initialize level to 1
 01D9  322862    LD      (#6228),A       ; set number of lives remaining to 1
 01DC  CDB806    CALL    #06B8           ; if a game is played or credits exist, display remaining lives-1 and level
 01DF  CD0702    CALL    #0207           ; set all dip switch settings and create default high score table from ROM
 01E2  3E01      LD      A,#01           ; A := 1
 01E4  32827D    LD      (#7D82),A       ; store into flip screen setting
-01E7  320560    LD      (#6005),A       ; store into game mode 1
+01E7  320560    LD      (GameMode1),A   ; store into game mode 1
 01EA  322762    LD      (#6227),A       ; initialize screen to 1 (girders)
 01ED  AF        XOR     A               ; A := 0
-01EE  320A60    LD      (#600A),A       ; store into game mode 2
+01EE  320A60    LD      (GameMode2),A       ; store into game mode 2
 01F1  CD530A    CALL    #0A53           ; draw "1UP" on screen
 01F4  110403    LD      DE,#0304        ; load task data to draw "HIGH SCORE"
 01F7  CD9F30    CALL    #309F           ; insert task to draw text
@@ -1290,7 +1280,7 @@ FF = Extra Mario Icon
 
 ; this sub reads and sets the dip switch settings, and creates the default high score table
 
-0207  3A807D    LD      A,(#7D80)       ; load A with Dip switch settings
+0207  3A807D    LD      A,(DSW1)        ; load A with Dip switch settings
 020A  4F        LD      C,A             ; copy to C
 020B  212060    LD      HL,#6020        ; set destination address to initial number of lives
 020E  E603      AND     #03             ; mask bits, now between 0 and 3 inclusive
@@ -1298,7 +1288,7 @@ FF = Extra Mario Icon
 0212  77        LD      (HL),A          ; store in initial number of lives
 0213  23        INC     HL              ; next HL, now at #6021 = score needed for extra life
 0214  79        LD      A,C             ; load A with original value of dip switches
-0215  0F        RRCA                    ; 
+0215  0F        RRCA                    ;
 0216  0F        RRCA                    ; rotate right twice
 0217  E603      AND     #03             ; mask bits, now between 0 and 3
 0219  47        LD      B,A             ; copy to B.  used in minisub below for loop counter
@@ -1344,7 +1334,7 @@ FF = Extra Mario Icon
 024C  23        INC     HL              ; HL := #6025
 024D  71        LD      (HL),C          ; store DE and BC into coins/credits
 024E  23        INC     HL              ; HL := #6026 = memory for upright/cocktail
-024F  3A807D    LD      A,(#7D80)       ; load A wtih dipswitch settings
+024F  3A807D    LD      A,(DSW1)        ; load A with dipswitch settings
 0252  07        RLCA                    ; rotate left
 0253  3E01      LD      A,#01           ; A := 1
 0255  DA5902    JP      C,#0259         ; if carry, skip next step
@@ -1358,9 +1348,9 @@ FF = Extra Mario Icon
 0263  EDB0      LDIR                    ; copy high score table into RAM
 0265  C9        RET                     ; return
 
-; come here from game power-on at location #0005
+; come here from game power-on
 ; first, clear memory #6000 to #6FFF to #00
-
+Init:
 0266  0610      LD      B,#10           ; for B = 0 to #10
 0268  210060    LD      HL,#6000        ; set destination
 026B  AF        XOR     A               ; A := 0
@@ -1398,14 +1388,14 @@ FF = Extra Mario Icon
 
 028A  77        LD      (HL),A          ; load clear into video RAM
 028B  23        INC     HL              ; next location
-028C  0D        DEC     C               ; 
+028C  0D        DEC     C               ;
 028D  20FB      JR      NZ,#028A        ; Next C
 
 028F  10F7      DJNZ    #0288           ; Next B
 
 ; Loads #60C0 to #60FF (task list) with #FF
 
-0291  21C060    LD      HL,#60C0        ; HL points to start of task list  
+0291  21C060    LD      HL,#60C0        ; HL points to start of task list
 0294  0640      LD      B,#40           ; For B = 1 to #40
 0296  3EFF      LD      A,#FF           ; load A with code for no task
 
@@ -1421,8 +1411,8 @@ FF = Extra Mario Icon
 02A4  AF        XOR     A               ; A := 0
 02A5  32837D    LD      (#7D83),A       ; Clear dkong_spritebank_w  /* 2 PSL Signal */
 
-02A8  32867D    LD      (#7D86),A       ; clear palette bank selector
-02AB  32877D    LD      (#7D87),A       ; clear palette bank selector
+02A8  32867D    LD      (PAL_SEL_BANK0),A       ; clear palette bank selector
+02AB  32877D    LD      (PAL_SEL_BANK1),A       ; clear palette bank selector
 02AE  3C        INC     A               ; A: = 1
 02AF  32827D    LD      (#7D82),A       ; set flip screen setting
 02B2  31006C    LD      SP,#6C00        ; set Stack Pointer to #6C00
@@ -1430,7 +1420,7 @@ FF = Extra Mario Icon
 02B8  3E01      LD      A,#01           ; A := 1
 02BA  32847D    LD      (#7D84),A       ; enable interrupts
 
-; 
+;
 ; arrive after RET encountered after #0306 jump
 ; check for tasks and do them if they exist
 ;
@@ -1509,7 +1499,7 @@ FF = Extra Mario Icon
 
 031C  CF        RST     #8              ; if credits exist or someone is playing, continue.  else RET
 
-031D  3A0D60    LD      A,(#600D)       ; Load A with player # (0 for player 1, 1 for player 2)
+031D  3A0D60    LD      A,(PlayerTurnA)       ; Load A with player # (0 for player 1, 1 for player 2)
 0320  CD4703    CALL    #0347           ; Loads HL with location for score (either player 1 or 2)
 0323  11E0FF    LD      DE,#FFE0        ; load DE with offset for each column
 0326  CB60      BIT     4,B             ; test bit 4 of timer.  Is it zero ?
@@ -1521,11 +1511,11 @@ FF = Extra Mario Icon
 032E  77        LD      (HL),A          ; clear the text "U" from "1UP"
 032F  19        ADD     HL,DE           ; next column
 0330  77        LD      (HL),A          ; clear the text "P" from "1UP"
-0331  3A0F60    LD      A,(#600F)       ; load A with # of players in game
+0331  3A0F60    LD      A,(TwoPlayerGame)       ; load A with # of players in game
 0334  A7        AND     A               ; is this a 1 player game?
 0335  C8        RET     Z               ; yes, return
 
-0336  3A0D60    LD      A,(#600D)       ; Load current player #
+0336  3A0D60    LD      A,(PlayerTurnA)       ; Load current player #
 0339  EE01      XOR     #01             ; change player from 1 to 2 or from 2 to 1
 033B  CD4703    CALL    #0347           ; Loads HL with location for score (either player 1 or 2)
 
@@ -1554,7 +1544,7 @@ FF = Extra Mario Icon
 0354  C0        RET     NZ              ; yes, return
 
 0355  21B360    LD      HL,#60B3        ; load HL with address for player 1 score
-0358  3A0D60    LD      A,(#600D)       ; load A with 0 when player 1 is up, 1 when player 2 is up
+0358  3A0D60    LD      A,(PlayerTurnA)       ; load A with 0 when player 1 is up, 1 when player 2 is up
 035B  A7        AND     A               ; player 1 up ?
 035C  2803      JR      Z,#0361         ; yes, skip next step
 
@@ -1567,9 +1557,9 @@ FF = Extra Mario Icon
 0366  7E        LD      A,(HL)          ; load A with byte of player's score
 0367  E60F      AND     #0F             ; mask bits
 0369  B0        OR      B               ; mix together the 2 score bytes
-036A  0F        RRCA    
-036B  0F        RRCA    
-036C  0F        RRCA    
+036A  0F        RRCA
+036B  0F        RRCA
+036C  0F        RRCA
 036D  0F        RRCA                    ; rotate right 4 times, this swaps the high and low bytes
 036E  212160    LD      HL,#6021        ; load HL with score needed for extra life
 0371  BE        CP      (HL)            ; compare player's score to high score.  is it greater?
@@ -1594,7 +1584,7 @@ FF = Extra Mario Icon
 
 ; [timer_6381++ ; IF (timer_6381/8) != INT(timer_6381/8) THEN RETURN]
 
-0386  218163    LD      HL,#6381        ; load HL with timer 
+0386  218163    LD      HL,#6381        ; load HL with timer
 0389  7E        LD      A,(HL)          ; load A with timer value
 038A  47        LD      B,A             ; copy to B
 038B  34        INC     (HL)            ; increase timer
@@ -1607,9 +1597,9 @@ FF = Extra Mario Icon
 
 038F  78        LD      A,B             ; load A with original timer value
 0390  0F        RRCA                    ; roll right 3 times... (div 8)
-0391  0F        RRCA    
-0392  0F        RRCA    
-0393  47        LD      B,A             ; store result into B   
+0391  0F        RRCA
+0392  0F        RRCA
+0393  47        LD      B,A             ; store result into B
 0394  3A2962    LD      A,(#6229)       ; load A with level number
 0397  80        ADD     A,B             ; add B to A
 0398  FE05      CP      #05             ; is this answer > 5 ?
@@ -1884,7 +1874,7 @@ FF = Extra Mario Icon
 ; Task #0, arrive from jump at #0306
 ; adds score
 ; parameter in A is the score to add in hundreds
-; 
+;
 
 051C  4F        LD      C,A             ; copy score to C
 051D  CF        RST     #8              ; only continue if credits exist or someone is playing, else RET
@@ -1909,7 +1899,7 @@ FF = Extra Mario Icon
 
 0536  D5        PUSH    DE              ; save DE
 0537  1B        DEC     DE              ; DE is now the last byte of score
-0538  3A0D60    LD      A,(#600D)       ; 0 for player 1, 1 for player 2
+0538  3A0D60    LD      A,(PlayerTurnA)       ; 0 for player 1, 1 for player 2
 053B  CD6B05    CALL    #056B           ; update onscreen score
 053E  D1        POP     DE              ; restore DE
 053F  1B        DEC     DE              ; decrement
@@ -1943,7 +1933,7 @@ FF = Extra Mario Icon
 ; loads DE with address of current player's score
 
 055F  11B260    LD      DE,#60B2        ; load DE with player 1 score
-0562  3A0D60    LD      A,(#600D)       ; load number of players
+0562  3A0D60    LD      A,(PlayerTurnA)       ; load number of players
 0565  A7        AND     A               ; is this player 2 ?
 0566  C8        RET     Z               ; no, return
 
@@ -1969,9 +1959,9 @@ FF = Extra Mario Icon
 ; can arrive here from #0627 to draw number of credits
 
 0583  7E        LD      A,(HL)          ; get digit
-0584  0F        RRCA    
-0585  0F        RRCA    
-0586  0F        RRCA    
+0584  0F        RRCA
+0585  0F        RRCA
+0586  0F        RRCA
 0587  0F        RRCA                    ; rotate right 4 times
 0588  CD9305    CALL    #0593           ; draw to screen
 058B  7E        LD      A,(HL)          ; get digit
@@ -2009,7 +1999,7 @@ FF = Extra Mario Icon
 
 05A8  21B560    LD      HL,#60B5        ; else load HL with player 2 score
 05AB  FE02      CP      #02             ; parameter == 2 ? [when would it do this ??? A always 0 or 1 ??? ]
-05AD  C2B305    JP      NZ,#05B3        ; no, skip next step 
+05AD  C2B305    JP      NZ,#05B3        ; no, skip next step
 
 05B0  21B860    LD      HL,#60B8        ; load HL with high score
 
@@ -2096,7 +2086,7 @@ FF = Extra Mario Icon
 060A  3610      LD      (HL),#10        ; yes, write a blank space to the screen
 
 060C  F5        PUSH    AF              ; save AF
-060D  13        INC     DE              ; next table data 
+060D  13        INC     DE              ; next table data
 060E  09        ADD     HL,BC           ; add screen offset for next column
 060F  18EF      JR      #0600           ; loop again
 
@@ -2106,7 +2096,7 @@ FF = Extra Mario Icon
 ; draws credits on screen if any are present
 ;
 
-0611  3A0760    LD      A,(#6007)       ; #6007 is 1 when no credits have been inserted.  is zero if any credit exist.
+0611  3A0760    LD      A,(NoCredits)   ; 1 when no credits have been inserted; 0 if any credits exist
 0614  0F        RRCA                    ; credits in game ?
 0615  D0        RET     NC              ; yes, return
 
@@ -2114,14 +2104,14 @@ FF = Extra Mario Icon
 
 0616  3E05      LD      A,#05           ; load text code for "CREDIT"
 0618  cde905    CALL    #05E9           ; draw to screen
-061B  210160    LD      HL,#6001        ; load HL with number of credits
+061B  210160    LD      HL,NumCredits   ; load HL with pointer to number of credits
 061E  11E0Ff    LD      DE,#ffe0        ; load DE with #ffe0 = offset for columns?
 0621  dd21Bf74  LD      IX,#74Bf        ; load IX with screen address to draw
 0625  0601      LD      B,#01           ; B := 1
 0627  c38305    JP      #0583           ; jump back to draw number of credits on screen and return
 
 ;
-; task #5 
+; task #5
 ; called from #0306
 ; parameter 0 = adds bonus to player's score
 ; parameter 1 = update onscreen bonus timer and play sound & change to red if below 1000
@@ -2155,7 +2145,7 @@ FF = Extra Mario Icon
 
 
 064D  214A38    LD      HL,#384A        ; load HL with #384A - table data
-0650  116574    LD      DE,#7465        ; load DE with #7465 - screen location for bonus timer 
+0650  116574    LD      DE,#7465        ; load DE with #7465 - screen location for bonus timer
 0653  3E06      LD      A,#06           ; For A = 1 to 6
 
 ; draws timer box on screen with all zeros
@@ -2164,7 +2154,7 @@ FF = Extra Mario Icon
 0659  010300    LD      BC,#0003        ; counter := 3
 065C  edb0      LDIR                    ; transfer (HL) to (DE) 3 times
 065E  dd19      ADD     IX,DE           ; add offset DE to IX
-0660  dde5      PUSH    IX              ; 
+0660  dde5      PUSH    IX              ;
 0662  d1        POP     de              ; load DE with IX
 0663  3D        DEC     a               ; decrease counter
 0664  c25506    JP      NZ,#0655        ; loop again if not zero
@@ -2178,9 +2168,9 @@ FF = Extra Mario Icon
 066D  47        LD      B,A             ; store result in B
 066E  79        LD      A,C             ; restore a with original value from timer
 066f  0F        RRCA                    ; rotate right 4 times.  divides by 16
-0670  0F        RRCA    
-0671  0F        RRCA    
-0672  0F        RRCA    
+0670  0F        RRCA
+0671  0F        RRCA
+0672  0F        RRCA
 0673  e60F      AND     #0F             ; and with #0F - zero out left 4 bits
 0675  c28906    JP      NZ,#0689        ; jump if not zero to #0689
 
@@ -2213,9 +2203,9 @@ FF = Extra Mario Icon
 069b  c1        POP     BC              ; restore BC
 069C  78        LD      A,b             ; load A with timer
 069D  0F        RRCA                    ; rotate right 4 times
-069E  0F        RRCA    
-069f  0F        RRCA    
-06A0  0F        RRCA    
+069E  0F        RRCA
+069f  0F        RRCA
+06A0  0F        RRCA
 06A1  e60F      AND     #0F             ; mask four left bits to zero
 06A3  c60A      ADD     A,#0A           ; add #0A (10 decimal) - this indicates scores of thousands to add
 06A5  c31C05    JP      #051C           ; jump to add score (thousands) and RET
@@ -2288,7 +2278,7 @@ FF = Extra Mario Icon
 ; start of main routine when playing a game
 ; arrive here from #00C9
 
-06FE  3A0A60    LD      A,(#600A)       ; load A with game mode2
+06FE  3A0A60    LD      A,(GameMode2)       ; load A with game mode2
 0701  EF        RST     #28             ; jump based on what the game state is
 
 0702  86 09                             ; (0) #0986     ; game start = clears screen, clears sounds, sets screen flip if needed
@@ -2302,9 +2292,9 @@ FF = Extra Mario Icon
 0712  DA 0B                             ; (8) #0BDA     ; draw goofy kongs, how high can you get, play music
 0714  00 00                             ; (9)           ; unused
 0716  91 0C                             ; (A) #0C91     ; clears screen, update timers, draws current screen, sets background music
-0718  3C 12                             ; (B) #123C     ; set initial mario sprite position and draw remaining lives and level  
-071A  7A 19                             ; (C) #197A     ; for when playing a game.  this is the main routine  
-071C  7C 12                             ; (D) #127C     ; mario died.  handle mario dying animations 
+0718  3C 12                             ; (B) #123C     ; set initial mario sprite position and draw remaining lives and level
+071A  7A 19                             ; (C) #197A     ; for when playing a game.  this is the main routine
+071C  7C 12                             ; (D) #127C     ; mario died.  handle mario dying animations
 071E  F2 12                             ; (E) #12F2     ; clear sounds, decrease life, check for and handle game over
 0720  44 13                             ; (F) #1344     ; clear sounds, clear game start flag, draw game over if needed PL2, set game mode2 accordingly
 0722  8F 13                             ; (10) #138F    ; check for game over status on a 2 player game
@@ -2319,8 +2309,8 @@ FF = Extra Mario Icon
 
 ; arrive from #00C9 when attract mode starts
 
-073C  210A60    LD      HL,#600A        ; load HL with game mode2 address
-073F  3A0160    LD      A,(#6001)       ; load A with number of credits
+073C  210A60    LD      HL,GameMode2        ; load HL with game mode2 address
+073F  3A0160    LD      A,(NumCredits)  ; load A with number of credits
 0742  A7        AND     A               ; any credits exist ?
 0743  C25C07    JP      NZ,#075C        ; yes, skip ahead, zero out game mode2, increase game mode1, and RET
 
@@ -2329,7 +2319,7 @@ FF = Extra Mario Icon
 
 0748  79 07                     0       ; #0779         ; clear screen, set color palettes, draw attract mode text and high score table,
                                                         ; [continued] increase game mode2, clear sprites, ; draw "1UP" on screen , draws number of coins needed for play
-074A  63 07                     1       ; #0763         ; 
+074A  63 07                     1       ; #0763         ;
 074C  3C 12                     2       ; #123C         ; set initial mario sprite position and draw remaining lives and level
 074E  77 19                     3       ; #1977         ; set artificial input for demo play [change to #197A to enable playing in demo part 1/2]
 0750  7C 12                     4       ; #127C         ; handle mario dying animations
@@ -2342,11 +2332,11 @@ FF = Extra Mario Icon
 ; arrive from #0743 when credits exist
 
 075C  3600      LD      (HL),#00        ; set game mode2 to zero
-075E  210560    LD      HL,#6005        ; load HL with game mode1
+075E  210560    LD      HL,GameMode1    ; load HL with game mode1
 0761  34        INC     (HL)            ; increase
 0762  C9        RET                     ; return
 
-; arrive here from #0747 during atract mode when game mode2 == 1
+; arrive here from #0747 during attract mode when GameMode2 == 1
 
 0763  E7        RST     #20             ; only continue here once per frame, else RET
 
@@ -2359,10 +2349,10 @@ FF = Extra Mario Icon
 0773  322862    LD      (#6228),A       ; load number of lives with 1
 0776  C3920C    JP      #0C92           ; skip ahead
 
-; arrive from #0747 when game mode2 == 0
+; arrive from #0747 when GameMode2 == 0
 ; clear screen, set color palettes, draw attract mode text and high score table, increase game mode2, clear sprites, ; draw "1UP" on screen , draws number of coins needed for play
 
-0779  21867D    LD      HL,#7D86
+0779  21867D    LD      HL,PAL_SEL_BANK0
 077C  3600      LD      (HL),#00        ; clear palette bank selector
 077E  23        INC     HL
 077F  3600      LD      (HL),#00        ; clear palette bank selector
@@ -2371,13 +2361,13 @@ FF = Extra Mario Icon
 0787  1C        INC     E               ; load task data for text "PLAYER    COIN"
 0788  CD9F30    CALL    #309F           ; insert task to draw text
 078B  CD6509    CALL    #0965           ; draws credits on screen if any are present and displays high score table
-078E  210960    LD      HL,#6009        ; load HL with timer address
+078E  210960    LD      HL,WaitTimerMSB ; load HL with timer address
 0791  3602      LD      (HL),#02        ; set timer at 2
 0793  23        INC     HL              ; load HL with game mode2
 0794  34        INC     (HL)            ; increase
 0795  CD7408    CALL    #0874           ; clears the screen and sprites
 0798  CD530A    CALL    #0A53           ; draw "1UP" on screen
-079B  3A0F60    LD      A,(#600F)       ; load A with number of players in game
+079B  3A0F60    LD      A,(TwoPlayerGame)       ; load A with number of players in game
 079E  FE01      CP      #01             ; 2 player game?
 07A0  CCEE09    CALL    Z,#09EE         ; yes, skip ahead to handle
 
@@ -2386,7 +2376,7 @@ FF = Extra Mario Icon
 07AA  CDAD07    CALL    #07AD           ; run this sub below twice
 
 07AD  73        LD      (HL),E          ; draw to screen number of coins needed for 1 player game
-07AE  23        INC     HL              ; 
+07AE  23        INC     HL              ;
 07AF  23        INC     HL              ; next screen location 2 rows down
 07B0  72        LD      (HL),D          ; draw to screen number of coins neeeded for 2 player game
 07B1  7A        LD      A,D             ; A := D
@@ -2395,22 +2385,22 @@ FF = Extra Mario Icon
 
 07B7  77        LD      (HL),A          ; else draw this zero to screen
 07B8  3C        INC     A               ; increase A, A := 1 now
-07B9  328E75    LD      (#758E),A       ; draw 1 to screen in front of the zero, so it draws "10" credits needed for 2 players 
+07B9  328E75    LD      (#758E),A       ; draw 1 to screen in front of the zero, so it draws "10" credits needed for 2 players
 
 07BC  110102    LD      DE,#0201        ; D := 2, E := 1, used for next loop for 1 player and 2 players
 07BF  218C76    LD      HL,#768C        ; set screen location to draw for next loop if needed
 07C2  C9        RET                     ; return
 
-; arrive from #0747 when game mode2 == 5
+; arrive from #0747 when GameMode2 == 5
 
 07C3  CD7408    CALL    #0874           ; clears the screen and sprites
-07C6  210A60    LD      HL,#600A        ; load HL with game mode 2
+07C6  210A60    LD      HL,GameMode2        ; load HL with game mode 2
 07C9  34        INC     (HL)            ; increase game mode2
 07CA  C9        RET                     ; return
 
-; arrive from jump at #0747 when game mode2 == 6
+; arrive from jump at #0747 when GameMode2 == 6
 
-07CB  3A8A63    LD      A,(#638A)       ; load A with kong screen flash counter 
+07CB  3A8A63    LD      A,(#638A)       ; load A with kong screen flash counter
 07CE  FE00      CP      #00             ; == 0 ?  time to flash?
 07D0  C22D08    JP      NZ,#082D        ; no, skip ahead : load C with (#638B), decreases #638A, loads A with (#638A); loads C with #638B, decreases #638A returns to #07DA
 
@@ -2423,7 +2413,7 @@ FF = Extra Mario Icon
 07DA  FE00      CP      #00             ; A == 0 ? [why not AND A ?]
 07DC  CA3B08    JP      Z,#083B         ; yes, skip ahead
 
-07DF  21867D    LD      HL,#7D86        ; load pallete bank
+07DF  21867D    LD      HL,PAL_SEL_BANK0        ; load pallete bank
 07E2  3600      LD      (HL),#00        ; clear palette bank selector
 07E4  79        LD      A,C             ; A := C
 07E5  CB07      RLC     A               ; rotate left.  carry bit set?
@@ -2431,7 +2421,7 @@ FF = Extra Mario Icon
 
 07E9  3601      LD      (HL),#01        ; set pallete bank selector to 1
 
-07EB  23        INC     HL              ; HL := #7D87 = 2nd pallete bank
+07EB  23        INC     HL              ; HL := PAL_SEL_BANK1 = 2nd pallete bank
 07EC  3600      LD      (HL),#00        ; clear the pallete bank selector
 07EE  CB07      RLC     A               ; rotate left again.  carry bit set ?
 07F0  3002      JR      NC,#07F4        ; no, skip next step
@@ -2467,7 +2457,7 @@ FF = Extra Mario Icon
 0816  21CF39    LD      HL,#39CF        ; load HL with table data for kong beating chest
 0819  CD4E00    CALL    #004E           ; update kong's sprites
 081C  CD243F    CALL    #3F24           ; draw TM logo onscreen [patch? orig japanese had 3 NOPs here]
-081F  00        NOP                     ; no operation 
+081F  00        NOP                     ; no operation
 0820  210869    LD      HL,#6908        ; load HL with start of kong sprite X pos
 0823  0E44      LD      C,#44           ; load C with offset to add X
 0825  FF        RST     #38             ; draw kong in new position
@@ -2488,9 +2478,9 @@ FF = Extra Mario Icon
 
 ; jump here from #07DC
 
-083B  210960    LD      HL,#6009        ; load HL with timer address
+083B  210960    LD      HL,WaitTimerMSB ; load HL with timer address
 083E  3602      LD      (HL),#02        ; set timer to 2
-0840  23        INC     HL              ; HL := #600A = game mode2
+0840  23        INC     HL              ; HL := GameMode2
 0841  34        INC     (HL)            ; increase game mode2
 0842  218A63    LD      HL,#638A        ; load HL with kong intro flash counter
 0845  3600      LD      (HL),#00        ; clear counter
@@ -2498,15 +2488,15 @@ FF = Extra Mario Icon
 0848  3600      LD      (HL),#00        ; clear this memory
 084A  C9        RET                     ; return
 
-; arrive from #0747 when game mode2 (#600A) == 7 
+; arrive from #0747 when GameMode2 == 7
 
 084B  E7        RST     #20             ; update timer and continue here only when complete, else RET
 
-084C  210A60    LD      HL,#600A        ; load HL with game mode2
+084C  210A60    LD      HL,GameMode2        ; load HL with game mode2
 084F  3600      LD      (HL),#00        ; set to 0
 0851  C9        RET                     ; return
 
-; called from #0986 
+; called from #0986
 ; clears screen and all sprites
 
 0852  210074    LD      HL,#7400        ; #7400 is beginning of video RAM
@@ -2536,7 +2526,7 @@ FF = Extra Mario Icon
 0873  C9        RET                     ; return
 
 ; called from many places.  EG #08BA and #01C3 and #0C92 and other places
-; clears the screen and sprites  
+; clears the screen and sprites
 
 0874  210474    LD      HL,#7404        ; load HL with start of video RAM
 0877  0E20      LD      C,#20           ; For C = 1 to #20
@@ -2582,12 +2572,12 @@ FF = Extra Mario Icon
 
 08B1  C9        RET                     ; Return
 
-; jump from #00C9 
+; jump from #00C9
 ; arrive here when credits have been inserted, waiting for game to start
 
-08B2  3A0A60    LD      A,(#600A)       ; load A with game mode2
+08B2  3A0A60    LD      A,(GameMode2)       ; load A with game mode2
 
-; #600A = 1 during attract mode, 7 during intro , A during how high can u get,
+; GameMode2 = 1 during attract mode, 7 during intro , A during how high can u get,
 ;         B right before play, C during play, D when dead, 10 when game over
 
 08B5  EF        RST     #28             ; jump based on A
@@ -2597,14 +2587,14 @@ FF = Extra Mario Icon
 
 08BA  CD7408    CALL    #0874           ; clear the screen and sprites
 08BD  AF        XOR     A               ; A := 0
-08BE  320760    LD      (#6007),A       ; store into credit indicator
+08BE  320760    LD      (NoCredits),A   ; store into credit indicator
 08C1  110C03    LD      DE,#030C        ; load DE with task code to display "PUSH" onscreen
 08C4  CD9F30    CALL    #309F           ; insert task
-08C7  210A60    LD      HL,#600A        ; load A with game mode2
+08C7  210A60    LD      HL,GameMode2        ; load A with game mode2
 08CA  34        INC     (HL)            ; increase game mode2
 08CB  CD6509    CALL    #0965           ; draw credits on screen if any are present and displays high score table
 08CE  AF        XOR     A               ; A := 0
-08CF  21867D    LD      HL,#7D86        ; load HL with pallete bank
+08CF  21867D    LD      HL,PAL_SEL_BANK0        ; load HL with pallete bank
 08D2  77        LD      (HL),A          ; clear palette bank selector
 08D3  2C        INC     L               ; next pallete bank
 08D4  77        LD      (HL),A          ; clear palette bank selector
@@ -2613,7 +2603,7 @@ FF = Extra Mario Icon
 
 08D5  0604      LD      B,#04           ; B := 4 = 0100 binary
 08D7  1E09      LD      E,#09           ; E := 9 , code for "ONLY 1 PLAYER BUTTON"
-08D9  3A0160    LD      A,(#6001)       ; load A with number of credits
+08D9  3A0160    LD      A,(NumCredits)  ; load A with number of credits
 08DC  FE01      CP      #01             ; == 1 ?
 08DE  CAE408    JP      Z,#08E4         ; yes, skip next 2 steps
 
@@ -2628,11 +2618,11 @@ FF = Extra Mario Icon
 08ED  CDE905    CALL    #05E9           ; draw text to screen
 08F0  CD1606    CALL    #0616           ; draw credits on screen
 
-08F3  3A007D    LD      A,(#7D00)       ; load A with IN2 [Credit/Service/Start Info]
+08F3  3A007D    LD      A,(IN2)         ; load A with IN2 [Credit/Service/Start Info]
 08F6  A0        AND     B               ; mask bits with B
 08F7  C9        RET                     ; return
 
-; jump from #08B5 when game mode2 == 1
+; jump from #08B5 when GameMode2 == 1
 
 08F8  CDD508    CALL    #08D5           ; draws press player buttons and loads A with IN2, masked by possible player numbers
 08FB  FE04      CP      #04             ; is the player 1 button pressed ?
@@ -2666,13 +2656,13 @@ FF = Extra Mario Icon
 0925  12        LD      (DE),A          ; store into number of lives player 2
 0926  1C        INC     E               ; DE := #6049
 0927  215E09    LD      HL,#095E        ; load HL with source data table start
-092A  010700    LD      BC,#0007        ; counter = 7 
+092A  010700    LD      BC,#0007        ; counter = 7
 092D  EDB0      LDIR                    ; copy #095E into #6049 for 7 bytes
 092F  110101    LD      DE,#0101        ; load task #1, parameter 1.  clears player 1 and 2 scores and displays them.
 0932  CD9F30    CALL    #309F           ; insert task
 0935  210001    LD      HL,#0100        ; HL := #100
 
-0938  220E60    LD      (#600E),HL      ; store HL into #600E and #600F.  #600F is the number of players in the game
+0938  220E60    LD      (PlayerTurnB),HL      ; store HL into PlayerTurnB and TwoPlayerGame.  TwoPlayerGame is the number of players in the game
 093B  CD7408    CALL    #0874           ; clear the screen and sprites
 093E  114060    LD      DE,#6040        ; load DE with address for number of lives player 1
 0941  3A2060    LD      A,(#6020)       ; number of initial lives set with dip switches (3, 4, 5, or 6)
@@ -2684,9 +2674,9 @@ FF = Extra Mario Icon
 094E  110001    LD      DE,#0100        ; load task #1, parameter 0.  clears player 1 score and displays it
 0951  CD9F30    CALL    #309F           ; insert task
 0954  AF        XOR     A               ; A := 0
-0955  320A60    LD      (#600A),A       ; reset game mode2
+0955  320A60    LD      (GameMode2),A       ; reset game mode2
 0958  3E03      LD      A,#03           ; A := 3
-095A  320560    LD      (#6005),A       ; store into game mode1
+095A  320560    LD      (GameMode1),A   ; store into game mode1
 095D  C9        RET                     ; return
 
 ; table data use in code above - gets copied to #6041 to #6041+7
@@ -2708,26 +2698,26 @@ FF = Extra Mario Icon
 
 ; subtract 1 credit and update screen credit counter
 
-0977  210160    LD      HL,#6001        ; load HL with number of credits address
+0977  210160    LD      HL,NumCredits   ; load HL with pointer to number of credits
 097A  3E99      LD      A,#99           ; A := #99
 097C  86        ADD     A,(HL)          ; add to number of credits.   equivalent of subtracting 1
 097D  27        DAA                     ; decimal adjust
 097E  77        LD      (HL),A          ; store into number of credits
-097F  110004    LD      DE,#0400        ; set task #4 = draws credits on screen if any are present 
+097F  110004    LD      DE,#0400        ; set task #4 = draws credits on screen if any are present
 0982  CD9F30    CALL    #309F           ; insert task
 0985  C9        RET                     ; return
 
 ; arrive here when a game begins
 ; clears screen, clears sounds, sets screen flip if needed
-; jump from #0701 when game mode2 == 0
+; jump from #0701 when GameMode2 == 0
 
 0986  CD5208    CALL    #0852           ; clear screen and all sprites
 0989  CD1C01    CALL    #011C           ; clear all sounds
 098C  11827D    LD      DE,#7D82        ; load DE with flip screen setting
 098F  3E01      LD      A,#01           ; A := 1
-0991  12        LD      (DE),A          ; store 
-0992  210A60    LD      HL,#600A        ; load HL with game mode 2 address
-0995  3A0E60    LD      A,(#600E)       ; load A with 0 when player 1 is up, = 1 when player 2 is up
+0991  12        LD      (DE),A          ; store
+0992  210A60    LD      HL,GameMode2        ; load HL with game mode 2 address
+0995  3A0E60    LD      A,(PlayerTurnB)       ; load A with 0 when player 1 is up, = 1 when player 2 is up
 0998  A7        AND     A               ; is player 1 up?
 0999  C29F09    JP      NZ,#099F        ; no, skip next 2 steps
 
@@ -2744,7 +2734,7 @@ FF = Extra Mario Icon
 09A8  3603      LD      (HL),#03        ; set game mode 2 to 3
 09AA  C9        RET                     ; return
 
-; jump from #0701 when game mode2 == 1
+; jump from #0701 when GameMode2 == 1
 ; copy player data, set screen, set next game mode based on number of players
 
 09AB  214060    LD      HL,#6040        ; load HL with source data location
@@ -2754,24 +2744,24 @@ FF = Extra Mario Icon
 09B6  2A2A62    LD      HL,(#622A)      ; EG #3A65.  start of table data for screens/levels
 09B9  7E        LD      A,(HL)          ; load screen number from table
 09BA  322762    LD      (#6227),A       ; store screen number
-09BD  3A0F60    LD      A,(#600F)       ; load A with number of players
+09BD  3A0F60    LD      A,(TwoPlayerGame)       ; load A with number of players
 09C0  A7        AND     A               ; 1 player game?
-09C1  210960    LD      HL,#6009        ; load HL with timer address
-09C4  110A60    LD      DE,#600A        ; load DE with game mode2 address
+09C1  210960    LD      HL,WaitTimerMSB ; load HL with timer address
+09C4  110A60    LD      DE,GameMode2        ; load DE with game mode2 address
 09C7  CAD009    JP      Z,#09D0         ; if 1 player game, skip ahead
 
 ; 2 player game
 
 09CA  3678      LD      (HL),#78        ; store #78 into timer
 09CC  EB        EX      DE,HL           ; DE <> HL.  HL now has game mode2
-09CD  3602      LD      (HL),#02        ; game mode2 := 2
+09CD  3602      LD      (HL),#02        ; GameMode2 := 2
 09CF  C9        RET                     ; return
 
 ; 1 player game
 
 09D0  3601      LD      (HL),#01        ; store 1 into timer
 09D2  EB        EX      DE,HL           ; DE <> HL.  HL now has game mode2
-09D3  3605      LD      (HL),#05        ; game mode2 := 5
+09D3  3605      LD      (HL),#05        ; GameMode2 := 5
 09D5  C9        RET                     ; return
 
 
@@ -2780,14 +2770,14 @@ FF = Extra Mario Icon
 ; clears palettes, draws "PLAYER <I>", draws player2 score, draws "2UP"
 
 09D6  AF        XOR     A               ; A := 0
-09D7  32867D    LD      (#7D86),A       ; clear palette bank selector
-09DA  32877D    LD      (#7D87),A       ; clear palette bank selector
+09D7  32867D    LD      (PAL_SEL_BANK0),A       ; clear palette bank selector
+09DA  32877D    LD      (PAL_SEL_BANK1),A       ; clear palette bank selector
 09DD  110203    LD      DE,#0302        ; load task data for text #2 "PLAYER <I>"
 09E0  CD9F30    CALL    #309F           ; insert task to draw
 09E3  110102    LD      DE,#0201        ; load task #2, parameter 1 to display player 2 score
 09E6  CD9F30    CALL    #309F           ; insert task
 09E9  3E05      LD      A,#05           ; A := 5
-09EB  320A60    LD      (#600A),A       ; store into game mode2
+09EB  320A60    LD      (GameMode2),A       ; store into game mode2
 
 09EE  3E02      LD      A,#02           ; load A with "2"
 09F0  32E074    LD      (#74E0),A       ; write to screen
@@ -2797,7 +2787,7 @@ FF = Extra Mario Icon
 09FA  32A074    LD      (#74A0),A       ; write to screen
 09FD  C9        RET                     ; return
 
-; arrive from #0701 when game mode2 == 3
+; arrive from #0701 when GameMode2 == 3
 
 09FE  214860    LD      HL,#6048        ; source location is ???
 0A01  112862    LD      DE,#6228        ; destination is player lives remaining plus other player variables
@@ -2807,27 +2797,27 @@ FF = Extra Mario Icon
 0A0C  7E        LD      A,(HL)          ; load A with screen number from table
 0A0D  322762    LD      (#6227),A       ; store A into screen number
 0A10  3E78      LD      A,#78           ; A := #78
-0A12  320960    LD      (#6009),A       ; store into timer
+0A12  320960    LD      (WaitTimerMSB),A    ; store into timer
 0A15  3E04      LD      A,#04           ; A := 4
-0A17  320A60    LD      (#600A),A       ; store into game mode2
+0A17  320A60    LD      (GameMode2),A       ; store into game mode2
 0A1A  C9        RET                     ; return
 
-; arrive from #0701 when game mode2 == 4
+; arrive from #0701 when GameMode2 == 4
 ; clears palletes, draws "PLAYER <II>", update player2 score, draw "2UP" to screen
 
 0A1B  AF        XOR     A               ; A := 0
-0A1C  32867D    LD      (#7D86),A       ; clear palette bank selector
-0A1F  32877D    LD      (#7D87),A       ; clear palette bank selector
+0A1C  32867D    LD      (PAL_SEL_BANK0),A       ; clear palette bank selector
+0A1F  32877D    LD      (PAL_SEL_BANK1),A       ; clear palette bank selector
 0A22  110303    LD      DE,#0303        ; load task data for text #3 "PLAYER <II>"
 0A25  CD9F30    CALL    #309F           ; insert task to draw text
 0A28  110102    LD      DE,#0201        ; load task #2, parameter 1 to display player 2 score
 0A2B  CD9F30    CALL    #309F           ; insert task
 0A2E  CDEE09    CALL    #09EE           ; draw "2UP" to screen
 0A31  3E05      LD      A,#05           ; A := 5
-0A33  320A60    LD      (#600A),A       ; store into game mode2
+0A33  320A60    LD      (GameMode2),A       ; store into game mode2
 0A36  C9        RET                     ; return
 
-; arrive from #0701 when game mode2 == 5
+; arrive from #0701 when GameMode2 == 5
 ; updates high score, player score, remaining lives, level, 1UP
 
 0A37  110403    LD      DE,#0304        ; load task data for text #4 "HIGH SCORE"
@@ -2838,7 +2828,7 @@ FF = Extra Mario Icon
 0A46  CD9F30    CALL    #309F           ; insert task
 0A49  110006    LD      DE,#0600        ; load task #6 parameter 0 to display lives remaining and level
 0A4C  CD9F30    CALL    #309F           ; insert task
-0A4F  210A60    LD      HL,#600A        ; load HL with game mode2 address
+0A4F  210A60    LD      HL,GameMode2        ; load HL with game mode2 address
 0A52  34        INC     (HL)            ; increase game mode
 
 ;  called from #01F1 , #0798, and other places
@@ -2852,14 +2842,14 @@ FF = Extra Mario Icon
 0A5F  320077    LD      (#7700),A       ; write to screen
 0A62  C9        RET                     ; return
 
-; arrive from #0701 when game mode2 == 6
+; arrive from #0701 when GameMode2 == 6
 ; clears screen and sprites, check for intro screen to run
 
-0A63  DF        RST     #18             ; count down #6009 and only continue here if == 0, else return to higher sub.
+0A63  DF        RST     #18             ; count down WaitTimerMSB and only continue here if == 0, else return to higher sub.
 0A64  CD7408    CALL    #0874           ; clears the screen and sprites
-0A67  210960    LD      HL,#6009        ; load HL with timer
+0A67  210960    LD      HL,WaitTimerMSB ; load HL with timer
 0A6A  3601      LD      (HL),#01        ; set timer to 1
-0A6C  2C        INC     L               ; HL := #600A = game mode2
+0A6C  2C        INC     L               ; HL := GameMode2
 0A6D  34        INC     (HL)            ; increase game mode2 to 7
 0A6E  112C62    LD      DE,#622C        ; load DE with game start flag address
 0A71  1A        LD      A,(DE)          ; load A with game start flag
@@ -2869,7 +2859,7 @@ FF = Extra Mario Icon
 0A74  34        INC     (HL)            ; else increase game mode2 to 8 - skip kong intro to begin
 0A75  C9        RET                     ; return
 
-; arrive from #0701 when game mode2 == 7
+; arrive from #0701 when GameMode2 == 7
 
 0A76  3A8563    LD      A,(#6385)       ; varies from 0 to 7 while the intro screen runs, when kong climbs the dual ladders and scary music is played
 0A79  EF        RST     #28             ; jump based on A
@@ -2886,9 +2876,9 @@ FF = Extra Mario Icon
 ; arrive from #0A79 when intro screen indicator == 0
 
 0A8A  AF        XOR     A               ; A := 0
-0A8B  32867D    LD      (#7D86),A       ; clear palette bank selector
+0A8B  32867D    LD      (PAL_SEL_BANK0),A       ; clear palette bank selector
 0A8E  3C        INC     A               ; A := 1
-0A8F  32877D    LD      (#7D87),A       ; store into palette bank selector
+0A8F  32877D    LD      (PAL_SEL_BANK1),A       ; store into palette bank selector
 0A92  110D38    LD      DE,#380D        ; load DE with start of table data
 0A95  CDA70D    CALL    #0DA7           ; draw the screen
 0A98  3E10      LD      A,#10           ; A := #10
@@ -2903,7 +2893,7 @@ FF = Extra Mario Icon
 0AAF  21CB38    LD      HL,#38CB        ; load HL with start of table data
 0AB2  22C463    LD      (#63C4),HL      ; store
 0AB5  3E40      LD      A,#40           ; A := #40
-0AB7  320960    LD      (#6009),A       ; set timer to #40
+0AB7  320960    LD      (WaitTimerMSB),A    ; set timer to #40
 0ABA  218563    LD      HL,#6385        ; load HL with intro screen counter
 0ABD  34        INC     (HL)            ; increase
 0ABE  C9        RET                     ; return
@@ -2914,7 +2904,7 @@ FF = Extra Mario Icon
 0AC0  218C38    LD      HL,#388C        ; load HL with start of table data for kong
 0AC3  CD4E00    CALL    #004E           ; update kong's sprites
 0AC6  210869    LD      HL,#6908        ; load HL with start of Kong sprite
-0AC9  0E30      LD      C,#30           ; load offset to add 
+0AC9  0E30      LD      C,#30           ; load offset to add
 0ACB  FF        RST     #38             ; move kong
 0ACC  210B69    LD      HL,#690B        ; load HL with start of Kong sprite
 0ACF  0E99      LD      C,#99           ; load offset to add
@@ -2943,7 +2933,7 @@ FF = Extra Mario Icon
 0AF8  D0        RET     NC              ; no, return
 
 0AF9  3E20      LD      A,#20           ; A := #20
-0AFB  320960    LD      (#6009),A       ; set timer to #20
+0AFB  320960    LD      (WaitTimerMSB),A    ; set timer to #20
 0AFE  218563    LD      HL,#6385        ; load HL with intro screen counter
 0B01  34        INC     (HL)            ; increase
 0B02  22C063    LD      (#63C0),HL      ; store HL into ???
@@ -2963,7 +2953,7 @@ FF = Extra Mario Icon
 0B14  23        INC     HL              ; next HL
 0B15  22C263    LD      (#63C2),HL      ; store
 0B18  4F        LD      C,A             ; C := A
-0B19  210B69    LD      HL,#690B        ; load HL with start of Kong sprite 
+0B19  210B69    LD      HL,#690B        ; load HL with start of Kong sprite
 0B1C  FF        RST     #38             ; move kong
 0B1D  C9        RET                     ; return
 
@@ -2994,7 +2984,7 @@ FF = Extra Mario Icon
 0B56  3E05      LD      A,#05           ; A := 5
 0B58  328D63    LD      (#638D),A       ; store into kong bounce counter
 0B5B  3E20      LD      A,#20           ; A := #20
-0B5D  320960    LD      (#6009),A       ; set timer to #20
+0B5D  320960    LD      (WaitTimerMSB),A    ; set timer to #20
 0B60  218563    LD      HL,#6385        ; load HL with intro screen counter
 0B63  34        INC     (HL)            ; increase
 0B64  22C063    LD      (#63C0),HL      ; store into ???
@@ -3030,9 +3020,9 @@ FF = Extra Mario Icon
 0B91  21DC38    LD      HL,#38DC        ; load HL with start of table data
 0B94  3A8D63    LD      A,(#638D)       ; load A with kong bounce counter
 0B97  3D        DEC     A               ; decrease
-0B98  07        RLCA                    
-0B99  07        RLCA    
-0B9A  07        RLCA    
+0B98  07        RLCA
+0B99  07        RLCA
+0B9A  07        RLCA
 0B9B  07        RLCA                    ; rotate left 4 times (mult by 16)
 0B9C  5F        LD      E,A             ; copy to E
 0B9D  1600      LD      D,#00           ; D := 0
@@ -3044,7 +3034,7 @@ FF = Extra Mario Icon
 0BA8  C0        RET     NZ              ; no, return
 
 0BA9  3EB0      LD      A,#B0           ; else A := #B0
-0BAB  320960    LD      (#6009),A       ; store into counter
+0BAB  320960    LD      (WaitTimerMSB),A    ; store into counter
 0BAE  218563    LD      HL,#6385        ; load HL with intro screen counter
 0BB1  34        INC     (HL)            ; increase
 0BB2  C9        RET                     ; return
@@ -3052,12 +3042,12 @@ FF = Extra Mario Icon
 ; arrive from #0A79 - last part of the intro to the game ?
 
 0BB3  218A60    LD      HL,#608A        ; load HL with music sound address
-0BB6  3A0960    LD      A,(#6009)       ; load A with timer value
+0BB6  3A0960    LD      A,(WaitTimerMSB)    ; load A with timer value
 0BB9  FE90      CP      #90             ; == #90 ?
 0BBB  200B      JR      NZ,#0BC8        ; no, skip ahead
 
 0BBD  360F      LD      (HL),#0F        ; play sound #0F = X X X kong sound
-0BBF  23        INC     HL              ; HL := 600A = game mode2
+0BBF  23        INC     HL              ; HL := GameMode2
 0BC0  3603      LD      (HL),#03        ; set game mode2 to 3
 0BC2  211969    LD      HL,#6919        ; load HL with kong's face sprite
 0BC5  34        INC     (HL)            ; increase - kong is now showing teeth
@@ -3070,11 +3060,11 @@ FF = Extra Mario Icon
 0BCF  35        DEC     (HL)            ; decrease - kong is normal face
 0BD0  00        NOP                     ; no operation [?]
 
-0BD1  DF        RST     #18             ; count down timer and only continue here if zero, else RET.  HL is loaded with #6009 timer address
+0BD1  DF        RST     #18             ; count down timer and only continue here if zero, else RET.  HL is loaded with WaitTimerMSB address
 0BD2  AF        XOR     A               ; A := 0
 0BD3  328563    LD      (#6385),A       ; reset intro screen counter to zero
-0BD6  34        INC     (HL)            ; increase timer in #6009
-0BD7  23        INC     HL              ; HL := #600A = game mode2
+0BD6  34        INC     (HL)            ; increase timer in WaitTimerMSB
+0BD7  23        INC     HL              ; HL := GameMode2
 0BD8  34        INC     (HL)            ; increase game mode2 (to 8?)
 0BD9  C9        RET                     ; return
 
@@ -3092,7 +3082,7 @@ FF = Extra Mario Icon
 0BE3  3A0062    LD      A,(#6200)       ; load A with 1 when mario is alive, 0 when dead
 0BE6  5F        LD      E,A             ; store into task parameter
 0BE7  CD9F30    CALL    #309F           ; insert task to display remaining lives and level number
-0BEA  21867D    LD      HL,#7D86        ; load HL with palette bank
+0BEA  21867D    LD      HL,PAL_SEL_BANK0        ; load HL with palette bank
 0BED  3601      LD      (HL),#01        ; set palette bank selector
 0BEF  23        INC     HL              ; next pallete bank
 0BF0  3600      LD      (HL),#00        ; clear palette bank selector
@@ -3182,17 +3172,17 @@ FF = Extra Mario Icon
 
 0C82  110703    LD      DE,#0307        ; load task data for text #7 "HOW HIGH CAN YOU GET?"
 0C85  CD9F30    CALL    #309F           ; insert task to draw text
-0C88  210960    LD      HL,#6009        ; load HL with timer to wait
+0C88  210960    LD      HL,WaitTimerMSB ; load HL with timer to wait
 0C8B  36A0      LD      (HL),#A0        ; set timer for #A0 units
-0C8D  23        INC     HL              ; HL := #600A (game mode2)
-0C8E  34        INC     (HL)            ; 
+0C8D  23        INC     HL              ; HL := GameMode2
+0C8E  34        INC     (HL)            ;
 0C8F  34        INC     (HL)            ; increase game mode twice - starts game
 0C90  C9        RET                     ; return
 
 ; arrive here from #0701 when game mode = 9
-; clears screen, update timers, draws current screen, sets background music, 
+; clears screen, update timers, draws current screen, sets background music,
 
-0C91  DF        RST     #18             ; count down #6009 and only continue when 0
+0C91  DF        RST     #18             ; count down WaitTimerMSB and only continue when 0
 
 ; arrive here from #0776 during attract mode
 
@@ -3201,7 +3191,7 @@ FF = Extra Mario Icon
 0C96  328C63    LD      (#638C),A       ; reset onscreen timer
 0C99  110105    LD      DE,#0501        ; load DE with task #5, parameter 1 update onscreen bonus timer and play sound & change to red if below 1000
 0C9C  CD9F30    CALL    #309F           ; insert task
-0C9F  21867D    LD      HL,#7D86        ; load HL with palette bank selector
+0C9F  21867D    LD      HL,PAL_SEL_BANK0        ; load HL with palette bank selector
 0CA2  3600      LD      (HL),#00        ; clear palette bank selector
 0CA4  23        INC     HL              ; next bank
 0CA5  3601      LD      (HL),#01        ; set palette bank selector
@@ -3218,7 +3208,7 @@ FF = Extra Mario Icon
                                         ; else we are on rivets
 
 0CB6  CD430D    CALL    #0D43           ; draws the blue vertical bars next to kong on rivets
-0CB9  21867D    LD      HL,#7D86        ; load HL with palette bank selector
+0CB9  21867D    LD      HL,PAL_SEL_BANK0        ; load HL with palette bank selector
 0CBC  3601      LD      (HL),#01        ; set palette bank selector
 0CBE  3E0B      LD      A,#0B           ; load A with music code For rivets
 0CC0  328960    LD      (#6089),A       ; set music
@@ -3244,12 +3234,12 @@ FF = Extra Mario Icon
 ; conveyors from #0CAF
 
 0CDF  115D3B    LD      DE,#3B5D        ; load DE with start of table data for conveyors
-0CE2  21867D    LD      HL,#7D86        ; load HL with palette bank selector
+0CE2  21867D    LD      HL,PAL_SEL_BANK0        ; load HL with palette bank selector
 0CE5  3601      LD      (HL),#01        ; set palette bank selector
-0CE7  23        INC     HL              ; 
+0CE7  23        INC     HL              ;
 0CE8  3600      LD      (HL),#00        ; clear palette bank selector
 0CEA  3E09      LD      A,#09           ; load A with conveyor music
-0CEC  328960    LD      (#6089),A       ; set music for conveyors 
+0CEC  328960    LD      (#6089),A       ; set music for conveyors
 0CEF  C3C60C    JP      #0CC6           ; jump back
 
 ; elevators from #0CB3
@@ -3340,13 +3330,13 @@ FF = Extra Mario Icon
 
 0D5E  C9        RET                     ; return
 
-; jump here from #0CD1 (via #3FA3) 
+; jump here from #0CD1 (via #3FA3)
 
 0D5F  CD560F    CALL    #0F56           ; clear and initialize RAM values, compute initial timer, draw all initial sprites
-0D62  CD4124    CALL    #2441           ; 
-0D65  210960    LD      HL,#6009        ; load HL with timer addr.
+0D62  CD4124    CALL    #2441           ;
+0D65  210960    LD      HL,WaitTimerMSB ; load HL with timer addr.
 0D68  3640      LD      (HL),#40        ; set timer to #40
-0D6A  23        INC     HL              ; HL := #600A = game mode2
+0D6A  23        INC     HL              ; HL := GameMode2
 0D6B  34        INC     (HL)            ; increase game mode2
 0D6C  215C38    LD      HL,#385C        ; load HL with start of kong graphic table data
 0D6F  CD4E00    CALL    #004E           ; update kong's sprites
@@ -3354,7 +3344,7 @@ FF = Extra Mario Icon
 0D72  110069    LD      DE,#6900        ; set destination to girl sprite
 0D75  010800    LD      BC,#0008        ; set counter to 8
 0D78  EDB0      LDIR                    ; draw the girl on screen
-  
+
 0D7A  3A2762    LD      A,(#6227)       ; load a with screen number
 0D7D  fe04      CP      #04             ; is this rivets screen?
 0D7f  280A      JR      Z,#0D8b         ; if yes, jump ahead a bit
@@ -3474,7 +3464,7 @@ FF = Extra Mario Icon
 
 0E2A  3AB063    LD      A,(#63B0)       ; load A with ???
 0E2D  C6D0      ADD     A,#D0           ; add #D0
-0E2F  2AAD63    LD      HL,(#63AD)      ; 
+0E2F  2AAD63    LD      HL,(#63AD)      ;
 0E32  77        LD      (HL),A
 0E33  3AB363    LD      A,(#63B3)       ; load A with original data item
 0E36  FE01      CP      #01             ; == 1 ?  (is this a broken ladder ?)
@@ -3522,7 +3512,7 @@ FF = Extra Mario Icon
 0E72  CA780E    JP      Z,#0E78         ; yes, skip next 2 steps
 
 0E75  D610      SUB     #10             ; subtract #10
-0E77  77        LD      (HL),A          ; store 
+0E77  77        LD      (HL),A          ; store
 
 0E78  011F00    LD      BC,#001F        ; load BC with offset
 0E7B  09        ADD     HL,BC           ; add offset to HL
@@ -3580,7 +3570,7 @@ FF = Extra Mario Icon
 0EDA  FEF0      CP      #F0             ; compare to #F0.  is the sign positive?
 0EDC  F2E50E    JP      P,#0EE5         ; yes, skip next 3 steps [why?  #0EE5 is a jump - it should jump directly instead]
 
-0EDF  2B        DEC     HL              ; 
+0EDF  2B        DEC     HL              ;
 0EE0  3EF7      LD      A,#F7           ; A := #F7
 0EE2  32B563    LD      (#63B5),A       ; store into ???
 
@@ -3604,7 +3594,7 @@ FF = Extra Mario Icon
 
 0EFF  DA140F    JP      C,#0F14         ; yes, skip ahead
 
-0F02  32B163    LD      (#63B1),A       ; 
+0F02  32B163    LD      (#63B1),A       ;
 0F05  3EB1      LD      A,#B1           ; A := #B1
 0F07  77        LD      (HL),A          ; store into ???
 0F08  012000    LD      BC,#0020        ; load BC with offset
@@ -3666,7 +3656,7 @@ FF = Extra Mario Icon
 0F5B  AF        XOR     A               ; A := #00
 
 0F5C  77        LD      (HL),A          ; clear memory
-0F5D  2C        INC     L               ; next 
+0F5D  2C        INC     L               ; next
 0F5E  10FC      DJNZ    #0F5C           ; next B
 
 0F60  0E11      LD      C,#11           ; For C = 1 to 11
@@ -3723,7 +3713,7 @@ FF = Extra Mario Icon
 
 0F97  87        ADD     A,A             ; add A with A (double a).  A is now #64, #78, #8C, or #A0
 0F98  47        LD      B,A             ; copy to B
-0F99  3EDC      LD      A,#DC           ; A := #DC (220 decimal) 
+0F99  3EDC      LD      A,#DC           ; A := #DC (220 decimal)
 0F9B  90        SUB     B               ; subtract B.  answers are #78, #64, #50, or #3C
 0F9C  FE28      CP      #28             ; is this less than #28 (40 decimal) ?  (will never get this ... ???)
 0F9E  3002      JR      NC,#0FA2        ; no, skip next step
@@ -3763,11 +3753,11 @@ FF = Extra Mario Icon
 0FCB  79        LD      A,C             ; load A with screen number
 0FCC  EF        RST     #28             ; jump depending on the screen
 
-; jump table data 
+; jump table data
 
 0FCD  00 00                             ; unused
 0FCF  D7 0F                             ; #0FD7 for girders
-0FD1  1F 10                             ; #101F for conveyors       
+0FD1  1F 10                             ; #101F for conveyors
 0FD3  87 10                             ; #1087 for elevators
 0FD5  31 11                             ; #1131 for rivets
 
@@ -3778,13 +3768,13 @@ FF = Extra Mario Icon
 0FDD  011000    LD      BC,#0010        ; counter is #10
 0FE0  EDB0      LDIR                    ; draws the barrels pile next to kong
 
-0FE2  21EC3D    LD      HL,#3DEC        ; set up a copy job from table in #3DEC 
+0FE2  21EC3D    LD      HL,#3DEC        ; set up a copy job from table in #3DEC
 0FE5  110764    LD      DE,#6407        ; destination in memory is #6407
 0FE8  0E1C      LD      C,#1C           ; #1C is a secondary counter
 0FEA  0605      LD      B,#05           ; #05 is a secondary counter
 0FEC  CD2A12    CALL    #122A           ; copy
 
-0FEF  21F43D    LD      HL,#3DF4        ; load HL with table data start for initial fire locations 
+0FEF  21F43D    LD      HL,#3DF4        ; load HL with table data start for initial fire locations
 0FF2  CDFA11    CALL    #11FA           ; ???
 
 0FF5  21003E    LD      HL,#3E00        ; source table at #3E00 = oil can
@@ -3807,7 +3797,7 @@ FF = Extra Mario Icon
 
 ; data used in sub at #1006
 
-101B  00    
+101B  00
 101C  00
 101D  02
 101E  02
@@ -3907,7 +3897,7 @@ FF = Extra Mario Icon
 10C3  21603E    LD      HL,#3E60        ; start of table data
 10C6  110766    LD      DE,#6607        ; Destination sprite ?
 10C9  010C06    LD      BC,#060C        ; B = 6 is loop variable, C = offset ?
-10CC  CD2A12    CALL    #122A           ; 
+10CC  CD2A12    CALL    #122A           ;
 
 10CF  DD210066  LD      IX,#6600        ; load IX with ???
 10D3  215869    LD      HL,#6958        ; load HL with elevator sprites start
@@ -3952,7 +3942,7 @@ FF = Extra Mario Icon
 
 ; arrive here when rivets starts from #0FCC
 
-1131  21F03D    LD      HL,#3DF0        ; load HL with start of table data 
+1131  21F03D    LD      HL,#3DF0        ; load HL with start of table data
 1134  110764    LD      DE,#6407        ; load DE with destination ?
 1137  011C05    LD      BC,#051C        ; set counters
 
@@ -3969,7 +3959,7 @@ FF = Extra Mario Icon
 114E  218211    LD      HL,#1182        ; load HL with start of data table
 1151  11A364    LD      DE,#64A3        ; load DE with destination ?
 1154  011E02    LD      BC,#021E        ; set counters
-1157  CDEC11    CALL    #11EC           ; copy 
+1157  CDEC11    CALL    #11EC           ; copy
 
 ; draws black squares next to kong???
 
@@ -4017,7 +4007,7 @@ FF = Extra Mario Icon
 
 11A6  118366    LD      DE,#6683        ; load DE with sprite destination address ???
 11A9  010E02    LD      BC,#020E        ; B := 2 for the 2 hammers.  C := #E for ???
-11AC  CDEC11    CALL    #11EC           ; 
+11AC  CDEC11    CALL    #11EC           ;
 
 11AF  21083E    LD      HL,#3E08        ; set source
 11B2  118766    LD      DE,#6687        ; set destination
@@ -4038,7 +4028,7 @@ FF = Extra Mario Icon
 ; B used for loop counter (how many times to loop before returning)
 ; DE used as an offset for the next set of items to copy
 ; used to draw hammers initially on each level that has them ?
-; 
+;
 
 11D3  DD7E03    LD      A,(IX+#03)      ; Load A with item's X position
 11D6  77        LD      (HL),A          ; store into HL = sprite X position
@@ -4118,7 +4108,7 @@ FF = Extra Mario Icon
 ; Copies Data from Table in HL into the Destination at DE in chunks of 4
 ; B is used for the second loop variable
 ; C is used to specify the difference between the tables, assumed to be 4 or 5 or 0 ?
-; used for example to place the hammers ??? 
+; used for example to place the hammers ???
 
 122A  E5        PUSH    HL              ; Save HL
 122B  C5        PUSH    BC              ; Save BC
@@ -4141,7 +4131,7 @@ FF = Extra Mario Icon
 
 ; set initial mario sprite position and draw remaining lives and level
 
-123C  DF        RST     #18             ; count down #6009 and only continue when 0
+123C  DF        RST     #18             ; count down WaitTimerMSB and only continue when 0
 123D  3A2762    LD      A,(#6227)       ; load a with screen number
 1240  fe03      CP      #03             ; is this the elevators?
 1242  0116E0    LD      BC,#e016        ; B := #E0, C := #16.  used for X,Y coordinates
@@ -4164,13 +4154,13 @@ FF = Extra Mario Icon
 1269  DD7005    LD      (IX+#05),B      ; store Y position
 126C  70        LD      (HL),B          ; store Y position
 126D  DD360F01  LD      (IX+#0F),#01    ; turn this on (???)
-1271  210A60    LD      HL,#600A        ; load HL with game mode2 address
+1271  210A60    LD      HL,GameMode2        ; load HL with game mode2 address
 1274  34        INC     (HL)            ; increase game mode2 = start game
 1275  110106    LD      DE,#0601        ; set task #6, parameter 1 to draw lives-1 and level
 1278  CD9F30    CALL    #309F           ; insert task
 127B  C9        RET                     ; return
 
-; jump here from #0701 when game mode2 == #D
+; jump here from #0701 when GameMode2 == #D
 ; mario died ?
 
 127C  CDBD1D    CALL    #1DBD           ; check for bonus items and jumping scores, rivets
@@ -4181,8 +4171,8 @@ FF = Extra Mario Icon
 1285  AC 12                             ; #12AC         ; 1 mario dying
 1287  DE 12                             ; #12DE         ; 2 mario dead
 1289  00 00                             ; unused ?
-    
-128B  DF        RST     #18             ; count down #6009 and only continue when 0
+
+128B  DF        RST     #18             ; count down WaitTimerMSB and only continue when 0
 128C  214D69    LD      HL,#694D        ; load HL with mario sprite value
 128F  3EF0      LD      A,#F0           ; A := #F0
 1291  CB16      RL      (HL)            ; rotate left (HL)
@@ -4193,7 +4183,7 @@ FF = Extra Mario Icon
 1299  3E0D      LD      A,#0D           ; A := #D (13 decimal)
 129B  329E63    LD      (#639E),A       ; store into counter for number of times to rotate mario (?)
 129E  3E08      LD      A,#08           ; load A with 8 frames of delay
-12A0  320960    LD      (#6009),A       ; store into timer for sound delay
+12A0  320960    LD      (WaitTimerMSB),A    ; store into timer for sound delay
 12A3  CDBD30    CALL    #30BD           ; clear sprites ?
 12A6  3E03      LD      A,#03           ; load A with duration of sound
 12A8  328860    LD      (#6088),A       ; play death sound
@@ -4202,9 +4192,9 @@ FF = Extra Mario Icon
 ; arrive here when mario dies
 ; animates mario
 
-12AC  DF        RST     #18             ; count down #6009 and only continue when 0
+12AC  DF        RST     #18             ; count down WaitTimerMSB and only continue when 0
 12AD  3E08      LD      A,#08           ; load A with 8 frames of delay
-12AF  320960    LD      (#6009),A       ; store into timer for sound delays
+12AF  320960    LD      (WaitTimerMSB),A    ; store into timer for sound delays
 12B2  219E63    LD      HL,#639E        ; load counter
 12B5  35        DEC     (HL)            ; decrease.  are we done ?
 12B6  CACB12    JP      Z,#12CB         ; yes, skip ahead
@@ -4234,22 +4224,22 @@ FF = Extra Mario Icon
 12D4  219D63    LD      HL,#639D        ; load HL with death indicator
 12D7  34        INC     (HL)            ; increase.  mario now dead
 12D8  3E80      LD      A,#80           ; load A with delay of 80
-12DA  320960    LD      (#6009),A       ; store into sound delay counter
+12DA  320960    LD      (WaitTimerMSB),A    ; store into sound delay counter
 12DD  C9        RET                     ; return
 
 ; mario is completely dead
 
-12DE  DF        RST     #18             ; count down #6009 and only continue when 0
+12DE  DF        RST     #18             ; count down WaitTimerMSB and only continue when 0
 12DF  CDDB30    CALL    #30DB           ; clear mario and elevator sprites from screen
-12E2  210A60    LD      HL,#600A        ; set HL to game mode2
-12E5  3A0E60    LD      A,(#600E)       ; load A with current player
+12E2  210A60    LD      HL,GameMode2        ; set HL to game mode2
+12E5  3A0E60    LD      A,(PlayerTurnB)       ; load A with current player
 12E8  A7        AND     A               ; is this player 1 ?
 12E9  CAED12    JP      Z,#12ED         ; yes, skip next step
 
 12EC  34        INC     (HL)            ; increase game mode
 
 12ED  34        INC     (HL)            ; increase game mode
-12EE  2B        DEC     HL              ; load HL with timer #6009
+12EE  2B        DEC     HL              ; load HL with WaitTimerMSB
 12EF  3601      LD      (HL),#01        ; store 1 into timer
 12F1  C9        RET                     ; return
 
@@ -4275,7 +4265,7 @@ FF = Extra Mario Icon
 130C  21B260    LD      HL,#60B2        ; load HL with player 1 score address
 130F  CDCA13    CALL    #13CA           ; check for high score entry ???
 1312  21D476    LD      HL,#76D4        ; load HL with screen VRAM address ???
-1315  3A0F60    LD      A,(#600F)       ; load A with number of players
+1315  3A0F60    LD      A,(TwoPlayerGame)       ; load A with number of players
 1318  A7        AND     A               ; 1 player game?
 1319  2807      JR      Z,#1322         ; yes, skip next 3 steps
 
@@ -4286,24 +4276,24 @@ FF = Extra Mario Icon
 1322  CD2618    CALL    #1826           ; clear an area of the screen
 1325  110003    LD      DE,#0300        ; load task data for text #0 "GAME OVER"
 1328  CD9F30    CALL    #309F           ; insert task to draw text
-132B  210960    LD      HL,#6009        ; load HL with timer
+132B  210960    LD      HL,WaitTimerMSB ; load HL with timer
 132E  36C0      LD      (HL),#C0        ; set timer to #C0
-1330  23        INC     HL              ; HL := #600A = game mode2
+1330  23        INC     HL              ; HL := GameMode2
 1331  3610      LD      (HL),#10        ; set game mode2 to #10
 1333  C9        RET                     ; return
 
 1334  0E08      LD      C,#08           ; C := 8
-1336  3A0F60    LD      A,(#600F)       ; load A with number of players
+1336  3A0F60    LD      A,(TwoPlayerGame)       ; load A with number of players
 1339  A7        AND     A               ; 1 player game?
 133A  CA3F13    JP      Z,#133F         ; yes, skip next step
 
 133D  0E17      LD      C,#17           ; C := #17
 
 133F  79        LD      A,C             ; A := C
-1340  320A60    LD      (#600A),A       ; store into game mode2
+1340  320A60    LD      (GameMode2),A       ; store into game mode2
 1343  C9        RET                     ; return
 
-; arrive from #0701 when game mode2 == #F
+; arrive from #0701 when GameMode2 == #F
 ; clear sounds, clear game start flag, draw game over if needed, set game mode2 accordingly
 
 1344  CD1C01    CALL    #011C           ; clear all sounds
@@ -4329,9 +4319,9 @@ FF = Extra Mario Icon
 136D  CD9F30    CALL    #309F           ; insert task to draw text
 1370  21D376    LD      HL,#76D3        ; load HL with screen address ???
 1373  CD2618    CALL    #1826           ; clear an area of the screen
-1376  210960    LD      HL,#6009        ; load HL with timer
+1376  210960    LD      HL,WaitTimerMSB ; load HL with timer
 1379  36C0      LD      (HL),#C0        ; set timer to #C0
-137B  23        INC     HL              ; HL := #600A = game mode2
+137B  23        INC     HL              ; HL := GameMode2
 137C  3611      LD      (HL),#11        ; set game mode2 to #11
 137E  C9        RET                     ; return
 
@@ -4343,28 +4333,28 @@ FF = Extra Mario Icon
 1388  0E08      LD      C,#08           ; C := 8
 
 138A  79        LD      A,C             ; A := C
-138B  320A60    LD      (#600A),A       ; store A into game mode2
+138B  320A60    LD      (GameMode2),A       ; store A into game mode2
 138E  C9        RET                     ; return
 
-; arrive from #0701 when game mode2 == #10
+; arrive from #0701 when GameMode2 == #10
 ; when 2 player game has ended
 
 138F  DF        RST     #18             ; count down timer and only continue here if zero, else RET
 1390  0E17      LD      C,#17           ; C := #17
 1392  3A4860    LD      A,(#6048)       ; load A with number of lives for player 2
 
-1395  34        INC     (HL)            ; increase timer ??? [EG HL = #6009]
+1395  34        INC     (HL)            ; increase timer ??? [EG HL = WaitTimerMSB]
 1396  A7        AND     A               ; player has lives remaining ?
 1397  C29C13    JP      NZ,#139C        ; yes, skip next step
 
 139A  0E14      LD      C,#14           ; else C := #14
 
 139C  79        LD      A,C             ; A := C
-139D  320A60    LD      (#600A),A       ; store into game mode2
+139D  320A60    LD      (GameMode2),A       ; store into game mode2
 13A0  C9        RET                     ; return
 
 
-; arrive from #0701 when game mode2 == #11
+; arrive from #0701 when GameMode2 == #11
 
 13A1  DF        RST     #18             ; count down timer and only continue here if zero, else RET
 13A2  0E17      LD      C,#17           ; C := #17
@@ -4372,24 +4362,24 @@ FF = Extra Mario Icon
 13A7  C39513    JP      #1395           ; jump back, rest of this sub is above
 
 
-; arrive from #0701 when game mode2 == 12
+; arrive from #0701 when GameMode2 == 12
 ; flip screen if needed, reset game mode2 to zero, set player 2
 
 13AA  3A2660    LD      A,(#6026)       ; load A with upright/cocktail
 13AD  32827D    LD      (#7D82),A       ; store into hardware screen flip
 13B0  AF        XOR     A               ; A := 0
-13B1  320A60    LD      (#600A),A       ; set game mode2 to 0
+13B1  320A60    LD      (GameMode2),A       ; set game mode2 to 0
 13B4  210101    LD      HL,#0101        ; HL := #101
-13B7  220D60    LD      (#600D),HL      ; store 1 into #600D (set player2) and #600E (set player2)
+13B7  220D60    LD      (PlayerTurnA),HL      ; store 1 into PlayerTurnA (set player2) and PlayerTurnB (set player2)
 13BA  C9        RET                     ; return
 
-; arrive from #0701 when game mode2 == 13
+; arrive from #0701 when GameMode2 == 13
 ; set player 1, reset game mode2 to zero, set screen flip to not flipped
 
 13BB  AF        XOR     A               ; A := 0
-13BC  320D60    LD      (#600D),A       ; set for player 1
-13BF  320E60    LD      (#600E),A       ; store into current player number 1
-13C2  320A60    LD      (#600A),A       ; set game mode2 to 0
+13BC  320D60    LD      (PlayerTurnA),A       ; set for player 1
+13BF  320E60    LD      (PlayerTurnB),A       ; store into current player number 1
+13C2  320A60    LD      (GameMode2),A       ; set game mode2 to 0
 13C5  3C        INC     A               ; A := 1
 13C6  32827D    LD      (#7D82),A       ; store into screen flip for no flipping
 13C9  C9        RET                     ; return
@@ -4403,7 +4393,7 @@ FF = Extra Mario Icon
 ; this sub copies player score into #61C7-#61C9
 ; then it breaks the score into component digits and stores them into #61B1 through #61B6
 ; then it sets #61B7 through #61C4 to #10 (???)
-; 
+;
 
 13CA  11C661    LD      DE,#61C6        ; load DE with address for ???
 13CD  12        LD      (DE),A          ; store A into it
@@ -4438,7 +4428,7 @@ FF = Extra Mario Icon
 13EF  23        INC     HL              ; next HL
 13F0  10FB      DJNZ    #13ED           ; next B
 
-; 
+;
 
 13F2  363F      LD      (HL),#3F        ; store #3F into #61C5 = end code ?
 
@@ -4466,7 +4456,7 @@ FF = Extra Mario Icon
 
         ; exchange the values in (HL) and (DE) for #19 bytes
         ; this causes the high score to percolate up the high score list
- 
+
         140A  4E        LD      C,(HL)          ; C := (HL)
         140B  1A        LD      A,(DE)          ; A := (DE)
         140C  77        LD      (HL),A          ; (HL) := A
@@ -4486,7 +4476,7 @@ FF = Extra Mario Icon
 
 141D  C9        RET                     ; return
 
-; jump here from #0701 when game mode2 == #14 (game is over)
+; jump here from #0701 when GameMode2 == #14 (game is over)
 ; draw credits on screen, clears screen and sprites, checks for high score, flips screen if necessary
 
 141E  CD1606    CALL    #0616           ; draw credits on screen
@@ -4494,8 +4484,8 @@ FF = Extra Mario Icon
 
 1422  CD7408    CALL    #0874           ; clears the screen and sprites
 1425  3E00      LD      A,#00           ; A := 0
-1427  320E60    LD      (#600E),A       ; set player number 1
-142A  320D60    LD      (#600D),A       ; set player1
+1427  320E60    LD      (PlayerTurnB),A       ; set player number 1
+142A  320D60    LD      (PlayerTurnA),A       ; set player1
 142D  211C61    LD      HL,#611C        ; load HL with high score entry indicator
 1430  112200    LD      DE,#0022        ; offset to add is #22
 1433  0605      LD      B,#05           ; for B = 1 to 5
@@ -4522,16 +4512,16 @@ FF = Extra Mario Icon
 ; high score achieved ?
 
 144F  3E01      LD      A,#01           ; A := 1
-1451  320E60    LD      (#600E),A       ; set player #2
-1454  320D60    LD      (#600D),A       ; set player2
+1451  320E60    LD      (PlayerTurnB),A       ; set player #2
+1454  320D60    LD      (PlayerTurnA),A       ; set player2
 1457  3E00      LD      A,#00           ; A := 0
 
 1459  212660    LD      HL,#6026        ; load HL with address for upright/cocktail
 145C  B6        OR      (HL)            ; mix with A
 145D  32827D    LD      (#7D82),A       ; store A into screen flip setting
 1460  3E00      LD      A,#00           ; A := 0
-1462  320960    LD      (#6009),A       ; clear timer
-1465  210A60    LD      HL,#600A        ; load HL with game mode2 address
+1462  320960    LD      (WaitTimerMSB),A    ; clear timer
+1465  210A60    LD      HL,GameMode2        ; load HL with game mode2 address
 1468  34        INC     (HL)            ; increase game mode2 to #15
 1469  110D03    LD      DE,#030D        ; load task data for text #D "NAME REGISTRATION"
 146C  060C      LD      B,#0C           ; set counter for #0C items (12 decimal)
@@ -4546,25 +4536,25 @@ FF = Extra Mario Icon
 
 1475  3E01      LD      A,#01           ; A := 1
 1477  32827D    LD      (#7D82),A       ; set screen flip setting
-147A  320560    LD      (#6005),A       ; store into game mode1
-147D  320760    LD      (#6007),A       ; set indicator for no credits
+147A  320560    LD      (GameMode1),A   ; store into game mode1
+147D  320760    LD      (NoCredits),A   ; set indicator for no credits
 1480  3E00      LD      A,#00           ; A := 0
-1482  320A60    LD      (#600A),A       ; reset game mode2 to 0.  game is now totally over.
+1482  320A60    LD      (GameMode2),A       ; reset game mode2 to 0.  game is now totally over.
 1485  C9        RET                     ; return
 
 
-; jump from #0701 when game mode2 == #15
+; jump from #0701 when GameMode2 == #15
 ; game is over - high score entry
 
 
 1486  CD1606    CALL    #0616           ; draw credits on screen
-1489  210960    LD      HL,#6009        ; load HL with timer
+1489  210960    LD      HL,WaitTimerMSB ; load HL with timer
 148C  7E        LD      A,(HL)          ; load A with timer value
 148D  A7        AND     A               ; == 0 ?
 148E  C2DC14    JP      NZ,#14DC        ; no, skip ahead
 
-1491  32867D    LD      (#7D86),A       ; set palette bank selector
-1494  32877D    LD      (#7D87),A       ; set palette bank selector
+1491  32867D    LD      (PAL_SEL_BANK0),A       ; set palette bank selector
+1494  32877D    LD      (PAL_SEL_BANK1),A       ; set palette bank selector
 1497  3601      LD      (HL),#01        ; set timer to 1
 1499  213060    LD      HL,#6030        ; load HL with ???
 149C  360A      LD      (HL),#0A
@@ -4581,7 +4571,7 @@ FF = Extra Mario Icon
 14AD  21E875    LD      HL,#75E8        ; load HL with screen position for first player initial
 14B0  223660    LD      (#6036),HL      ; save into this indicator
 14B3  211C61    LD      HL,#611C        ; load HL with address of high score indicator
-14B6  3A0E60    LD      A,(#600E)       ; load A with current player number
+14B6  3A0E60    LD      A,(PlayerTurnB)       ; load A with current player number
 14B9  07        RLCA                    ; rotate left
 14BA  3C        INC     A               ; increase
 14BB  4F        LD      C,A             ; copy to C.  C now has 1 for player 1, 3 for player 2
@@ -4628,7 +4618,7 @@ FF = Extra Mario Icon
 14FC  213060    LD      HL,#6030        ; load HL with ???
 14FF  46        LD      B,(HL)          ; load B with the value
 1500  360A      LD      (HL),#0A        ; store #A into it
-1502  3A1060    LD      A,(#6010)       ; load A with input
+1502  3A1060    LD      A,(InputState)       ; load A with input
 1505  CB7F      BIT     7,A             ; is jump button pressed?
 1507  C24615    JP      NZ,#1546        ; yes, skip ahead
 
@@ -4752,16 +4742,16 @@ FF = Extra Mario Icon
 15C6  ED5B3860  LD      DE,(#6038)      ; load DE with address of high score entry indicator
 15CA  AF        XOR     A               ; A := 0
 15CB  12        LD      (DE),A          ; store.  this clears the high score indicator
-15CC  210960    LD      HL,#6009        ; load HL with timer
+15CC  210960    LD      HL,WaitTimerMSB ; load HL with timer
 15CF  3680      LD      (HL),#80        ; set time to #80
-15D1  23        INC     HL              ; HL := #600A = game mode2
+15D1  23        INC     HL              ; HL := GameMode2
 15D2  35        DEC     (HL)            ; decrease game mode2
 15D3  060C      LD      B,#0C           ; for B = 1 to #C (12 decimal)
 15D5  21E875    LD      HL,#75E8        ; load HL with screen vram address
 15D8  FD2A3A60  LD      IY,(#603A)      ; load IY with ???
 15DC  11E0FF    LD      DE,#FFE0        ; load DE with offset of -#20
 
-15DF  7E        LD      A,(HL)          ; load A with 
+15DF  7E        LD      A,(HL)          ; load A with
 15E0  FD7700    LD      (IY+#00),A      ; store
 15E3  FD23      INC     IY              ; next
 15E5  19        ADD     HL,DE           ; add offset
@@ -4783,7 +4773,7 @@ FF = Extra Mario Icon
 
 15FA  D5        PUSH    DE              ; save DE
 15FB  E5        PUSH    HL              ; save HL
-15FC  CB21      SLA     C               ; 
+15FC  CB21      SLA     C               ;
 15FE  210F36    LD      HL,#360F        ; start of table data
 1601  09        ADD     HL,BC
 1602  EB        EX      DE,HL
@@ -4802,7 +4792,7 @@ FF = Extra Mario Icon
 1613  D1        POP     DE              ; restore DE
 1614  C9        RET                     ; return
 
-; arrive when game mode2 == #16 (level completed).  called from #0701
+; arrive when GameMode2 == #16 (level completed).  called from #0701
 
 1615  CDBD30    CALL    #30BD           ; clear sprites
 1618  3A2762    LD      A,(#6227)       ; load a with screen number
@@ -4820,7 +4810,7 @@ FF = Extra Mario Icon
 1629  32 17                             ; #1732         ; 3
 162B  57 17                             ; #1757         ; 4
 162D  8E 17                             ; #178E         ; 5
- 
+
 162F  0F        RRCA                    ; roll right again.  is this the rivets ?
 1630  D24116    JP      NC,#1641        ; yes, skip ahead
 
@@ -4855,7 +4845,7 @@ FF = Extra Mario Icon
 1657  215C38    LD      HL,#385C        ; load HL with start of kong graphic table data
 165A  CD4E00    CALL    #004E           ; update kong's sprites
 165D  3E20      LD      A,#20           ; A := #20
-165F  320960    LD      (#6009),A       ; set timer to #20
+165F  320960    LD      (WaitTimerMSB),A    ; set timer to #20
 
 1662  218863    LD      HL,#6388        ; load HL with end of level counter
 1665  34        INC     (HL)            ; increase counter
@@ -4873,7 +4863,7 @@ FF = Extra Mario Icon
 1671  213239    LD      HL,#3932        ; load HL with start of kong's sprites table data
 1674  CD4E00    CALL    #004E           ; update kong's sprites
 1677  3E20      LD      A,#20           ; A := #20
-1679  320960    LD      (#6009),A       ; set timer to #20
+1679  320960    LD      (WaitTimerMSB),A    ; set timer to #20
 167C  218863    LD      HL,#6388        ; load HL with end of level counter
 167F  34        INC     (HL)            ; increase counter
 1680  3E04      LD      A,#04           ; A := 4 = 100 code for elevators
@@ -4960,7 +4950,7 @@ FF = Extra Mario Icon
 1708  CD1C01    CALL    #011C           ; clear all sounds
 170B  21206A    LD      HL,#6A20        ; load HL with heart sprite
 170E  3680      LD      (HL),#80        ; set heart sprite X position
-1710  23        INC     HL              ; next 
+1710  23        INC     HL              ; next
 1711  3676      LD      (HL),#76        ; set heart sprite
 1713  23        INC     HL              ; next
 1714  3609      LD      (HL),#09        ; set heart sprite color
@@ -5011,7 +5001,7 @@ FF = Extra Mario Icon
 175E  13        INC     DE
 175F  CD8317    CALL    #1783           ; ???
 1762  3E40      LD      A,#40           ; A := #40
-1764  320960    LD      (#6009),A       ; set timer to #40
+1764  320960    LD      (WaitTimerMSB),A    ; set timer to #40
 1767  218863    LD      HL,#6388        ; load HL with end of level counter
 176A  34        INC     (HL)            ; increase counter
 176B  C9        RET                     ; return
@@ -5067,13 +5057,13 @@ FF = Extra Mario Icon
 17A6  CD9F30    CALL    #309F           ; insert task
 17A9  AF        XOR     A               ; A := 0
 17AA  328863    LD      (#6388),A       ; clear end of level counter
-17AD  210960    LD      HL,#6009        ; load HL with timer addr.
+17AD  210960    LD      HL,WaitTimerMSB ; load HL with timer addr.
 17B0  3630      LD      (HL),#30        ; set timer to #30
-17B2  23        INC     HL              ; HL := #600A = game mode2
+17B2  23        INC     HL              ; HL := GameMode2
 17B3  3608      LD      (HL),#08        ; set game mode2 to 8
 17B5  C9        RET                     ; return
 
-17B6  00        NOP 
+17B6  00        NOP
 
 ; arrive when rivets is cleared
 
@@ -5112,7 +5102,7 @@ FF = Extra Mario Icon
 180F  210569    LD      HL,#6905        ; load HL with girl's sprite
 1812  3613      LD      (HL),#13        ; set girl's sprite
 1814  3E20      LD      A,#20           ; A := #20
-1816  320960    LD      (#6009),A       ; set timer to #20
+1816  320960    LD      (WaitTimerMSB),A    ; set timer to #20
 1819  3E80      LD      A,#80           ; A := #80
 181B  329063    LD      (#6390),A       ; store into timer ???
 181E  218863    LD      HL,#6388        ; load HL with end of level counter
@@ -5170,7 +5160,7 @@ FF = Extra Mario Icon
 1862  0E44      LD      C,#44           ; C := #44
 1864  FF        RST     #38             ; move kong
 1865  3E20      LD      A,#20           ; A := #20
-1867  320960    LD      (#6009),A       ; store into timer
+1867  320960    LD      (WaitTimerMSB),A    ; store into timer
 186A  218863    LD      HL,#6388        ; load HL with end of level counter
 186D  34        INC     (HL)            ; increase counter
 186E  C9        RET                     ; return
@@ -5276,7 +5266,7 @@ FF = Extra Mario Icon
 1913  218A60    LD      HL,#608A        ; load HL with sound address
 1916  360C      LD      (HL),#0C        ; play sound for rivets cleared
 1918  3A2962    LD      A,(#6229)       ; load A with level #
-191B  0F        RRCA                    ; roll a right .  is this an odd level ? 
+191B  0F        RRCA                    ; roll a right .  is this an odd level ?
 191C  3802      JR      c,#1920         ; Yes, skip next step
 
 191E  3605      LD      (HL),#05        ; else play sound for even numbered rivets
@@ -5314,23 +5304,23 @@ FF = Extra Mario Icon
 194E  322762    LD      (#6227),A       ; store A into screen number
 1951  212962    LD      HL,#6229        ; load HL with level number address
 1954  34        INC     (HL)            ; increase #6229 by one
-1955  110005    LD      DE,#0500        ; load task #5, parameter 0 ; adds bonus to player's score      
+1955  110005    LD      DE,#0500        ; load task #5, parameter 0 ; adds bonus to player's score
 1958  CD9F30    CALL    #309F           ; insert task
 195B  AF        XOR     A               ; A := 0
 195C  322E62    LD      (#622E),A       ; store into number of goofys to draw
 195F  328863    LD      (#6388),A       ; store into end of level counter
-1962  210960    LD      HL,#6009        ; load HL with timer
+1962  210960    LD      HL,WaitTimerMSB ; load HL with timer
 1965  36E0      LD      (HL),#e0        ; set timer to #E0
-1967  23        INC     HL              ; increase HL to #600A = game mode2
+1967  23        INC     HL              ; increase HL to GameMode2
 1968  3608      LD      (HL),#08        ; set game mode2 to 8
 196A  C9        RET                     ; return
 
-; arrive from jump table at #0701 when game mode2 == #17
+; arrive from jump table at #0701 when GameMode2 == #17
 
 196B  CD5208    CALL    #0852           ; clear screen and all sprites
-196E  3A0E60    LD      A,(#600E)       ; load A with current player number.  0 = player 1, 1 = player 2
+196E  3A0E60    LD      A,(PlayerTurnB)       ; load A with current player number.  0 = player 1, 1 = player 2
 1971  C612      ADD     A,#12           ; add #12
-1973  320A60    LD      (#600A),A       ; store into game mode2, now had #12 for player 1 or #13 for player 2
+1973  320A60    LD      (GameMode2),A       ; store into game mode2, now had #12 for player 1 or #13 for player 2
 1976  C9        RET                     ; return
 
 ; main routine
@@ -5342,7 +5332,7 @@ FF = Extra Mario Icon
 197A  CDBD1D    CALL    #1DBD           ; check for bonus items and jumping scores, rivets
 197D  CD8C1E    CALL    #1E8C           ; do stuff for items hit with hammer
 1980  CDC31A    CALL    #1AC3           ; check for jumping
-1983  CD721F    CALL    #1F72           ; roll barrels 
+1983  CD721F    CALL    #1F72           ; roll barrels
 1986  CD8F2C    CALL    #2C8F           ; roll barrels ?
 1989  CD032C    CALL    #2C03           ; do barrel deployment ?
 198C  CDED30    CALL    #30ED           ; update fires if needed
@@ -5353,7 +5343,7 @@ FF = Extra Mario Icon
 199B  CD0722    CALL    #2207           ; do stuff for conveyors
 199E  CD331A    CALL    #1A33           ; check for and handle running over rivets
 19A1  CD852A    CALL    #2A85           ; check for mario falling
-19A4  CD461F    CALL    #1F46           ; handle mario falling 
+19A4  CD461F    CALL    #1F46           ; handle mario falling
 19A7  CDFA26    CALL    #26FA           ; do stuff for elevators
 19AA  CDF225    CALL    #25F2           ; handle conveyor directions, adjust Mario's speed based on conveyor directions
 19AD  CDDA19    CALL    #19DA           ; check for mario picking up bonus item
@@ -5362,7 +5352,7 @@ FF = Extra Mario Icon
 19B6  CD1D28    CALL    #281D           ; do stuff for hammers
 19B9  CD571E    CALL    #1E57           ; check for end of level
 19BC  CD071A    CALL    #1A07           ; handle when the bonus timer has run out
-19BF  CDCB2F    CALL    #2FCB           ; for non-girder levels, checks for bonus timer changes. if the bonus counts down, sets a possible new fire to be released, 
+19BF  CDCB2F    CALL    #2FCB           ; for non-girder levels, checks for bonus timer changes. if the bonus counts down, sets a possible new fire to be released,
                                         ; sets a bouncer to be deployed, updates the bonus timer onscreen, and checks for bonus time running out
 19C2  00        NOP
 19C3  00        NOP
@@ -5377,9 +5367,9 @@ FF = Extra Mario Icon
 19CA  CD1C01    CALL    #011C           ; no, mario died.  clear all sounds
 19CD  218260    LD      HL,#6082        ; load HL with boom sound address
 19D0  3603      LD      (HL),#03        ; play boom sound for 3 units
-19D2  210A60    LD      HL,#600A        ; load HL with game mode2
+19D2  210A60    LD      HL,GameMode2        ; load HL with game mode2
 19D5  34        INC     (HL)            ; increase
-19D6  2B        DEC     HL              ; HL := #6009 (timer used for sound effects)
+19D6  2B        DEC     HL              ; HL := WaitTimerMSB (timer used for sound effects)
 19D7  3640      LD      (HL),#40        ; set timer to wait 40 units
 19D9  C9        RET                     ; return to #00D2
 
@@ -5495,7 +5485,7 @@ FF = Extra Mario Icon
 
 1A60  CBD0      SET     2,B             ; else B := 4
 
-1A62  07        RLCA                    ; 
+1A62  07        RLCA                    ;
 1A63  07        RLCA                    ; rotate left twice = mult by 4
 1A64  D2691A    JP      NC,#1A69        ; no carry, skip next step
 
@@ -5523,7 +5513,7 @@ FF = Extra Mario Icon
 1A84  3600      LD      (HL),#00        ; set this rivet as cleared
 1A86  219062    LD      HL,#6290        ; load HL with address of number of rivets remaining
 1A89  35        DEC     (HL)            ; decrease number of rivets
-1A8A  78        LD      A,B             ; A := B 
+1A8A  78        LD      A,B             ; A := B
 1A8B  010500    LD      BC,#0005        ; load BC with offset of 5
 1A8E  1F        RRA                     ; rotate right.  carry?  (is this rivet on right side?)
 1A8F  DABD1A    JP      C,#1ABD         ; yes, skip ahead and load HL with #012B and return to #1A95
@@ -5543,7 +5533,7 @@ FF = Extra Mario Icon
 1AA4  77        LD      (HL),A          ; erase the rivet
 1AA5  2D        DEC     L               ; next video memory
 1AA6  77        LD      (HL),A          ; erase the top of the rivet
-1AA7  2C        INC     L               ; 
+1AA7  2C        INC     L               ;
 1AA8  2C        INC     L               ; next video memory
 1AA9  77        LD      (HL),A          ; erase underneath the rivet [ not needed , there is nothing there to erase ???]
 1AAA  3E01      LD      A,#01           ; A := 1
@@ -5580,13 +5570,13 @@ FF = Extra Mario Icon
 1ADB  3D        DEC     A               ; is mario on a ladder?
 1ADC  CA381B    JP      Z,#1B38         ; yes, skip ahead
 
-1ADF  3A1060    LD      A,(#6010)       ; load A with input
+1ADF  3A1060    LD      A,(InputState)       ; load A with input
 1AE2  17        RLA                     ; is player pressing jump ?
 1AE3  DA6E1B    JP      C,#1B6E         ; yes, begin jump subroutine
 
 1AE6  CD1F24    CALL    #241F           ; else call this other sub which loads DE with something depending on mario's position.  ladder check?
 
-1AE9  3A1060    LD      A,(#6010)       ; load A with input
+1AE9  3A1060    LD      A,(InputState)       ; load A with input
 1AEC  1D        DEC     E               ; E == 1 ?
 1AED  CAF51A    JP      Z,#1AF5         ; yes, jump ahead
 
@@ -5648,7 +5638,7 @@ FF = Extra Mario Icon
 ; if mario is on a ladder
 ; jump here from #1ADC
 
-1B38  3A1060    LD      A,(#6010)       ; load A with input
+1B38  3A1060    LD      A,(InputState)       ; load A with input
 1B3B  CB5F      BIT     3,A             ; is joystick pushed down ?
 1B3D  C2F21C    JP      NZ,#1CF2        ; yes, skip ahead to handle
 
@@ -5656,7 +5646,7 @@ FF = Extra Mario Icon
 1B43  A7        AND     A               ; is mario on a ladder?
 1B44  C8        RET     Z               ; no, return
 
-1B45  3A1060    LD      A,(#6010)       ; load A with input
+1B45  3A1060    LD      A,(InputState)       ; load A with input
 1B48  CB57      BIT     2,A             ; is joystick pushed up ?
 1B4A  C2031D    JP      NZ,#1D03        ; yes, skip ahead to handle
 
@@ -5691,7 +5681,7 @@ FF = Extra Mario Icon
 1B6E  3E01      LD      A,#01           ; A := 1
 1B70  321662    LD      (#6216),A       ; set jump indicator
 1B73  211062    LD      HL,#6210        ; load HL with mario's jump direction address
-1B76  3A1060    LD      A,(#6010)       ; load A with copy of input
+1B76  3A1060    LD      A,(InputState)       ; load A with copy of input
 1B79  018000    LD      BC,#0080        ; B:= 0, C := #80 = codes for jumping right
 1B7C  1F        RRA                     ; rotate input right.  is joystick moved right ?
 1B7D  DA8A1B    JP      C,#1B8A         ; yes, skip ahead
@@ -5798,7 +5788,7 @@ FF = Extra Mario Icon
 1C32  00        NOP                     ; No operation [what was here ???]
 
 ; can arrive from #1C18
-     
+
 1C33  3C        INC     A               ; increase A.  Will turn to zero 1 pixel before apex of jump
 1C34  CC5429    CALL    Z,#2954         ; if zero, call this sub to check for hammer grab
 
@@ -5821,7 +5811,7 @@ FF = Extra Mario Icon
 
 1C4C  C3A61D    JP      #1DA6           ; jump ahead to update mario sprite and RET
 
-; jump almost complete ... 
+; jump almost complete ...
 
 1C4F  321662    LD      (#6216),A       ; store A into jump indicator
 1C52  3A2062    LD      A,(#6220)       ; load A with falling too far indicator
@@ -5907,7 +5897,7 @@ FF = Extra Mario Icon
 
 1Cdf  66        LD      h,(HL)          ; else load H with mario X position
 1Ce0  3A0562    LD      A,(#6205)       ; load A with mario Y position
-1Ce3  6f        LD      l,A             ; copy to L.  HL now has mario X,Y 
+1Ce3  6f        LD      l,A             ; copy to L.  HL now has mario X,Y
 1Ce4  cd3323    CALL    #2333           ; check for movement up/down a girder, might also change Y position ?
 1Ce7  7D        LD      A,l             ; load A with new Y position
 1Ce8  320562    LD      (#6205),A       ; store into Y position
@@ -6028,7 +6018,7 @@ FF = Extra Mario Icon
 1D91  328060    LD      (#6080),A       ; store into walking sound buffer
 1D94  C9        RET                     ; return
 
-; arrive here when walking over a rivet, not jumping.  from #1AB9, or from #1C70 
+; arrive here when walking over a rivet, not jumping.  from #1AB9, or from #1C70
 
 1D95  322562    LD      (#6225),A       ; store A into bonus sound indicator.  A is zero so this clears the indicator
 1D98  3A2762    LD      A,(#6227)       ; load A with screen number
@@ -6049,7 +6039,7 @@ FF = Extra Mario Icon
 1DA9  3A0362    LD      A,(#6203)       ; load A with mario's X position
 1DAC  77        LD      (HL),A          ; store into hardware sprite mario X position
 1DAD  3A0762    LD      A,(#6207)       ; load A with movement indicator
-1DB0  2C        INC     L               ; HL := #694D = hardware mario sprite 
+1DB0  2C        INC     L               ; HL := #694D = hardware mario sprite
 1DB1  77        LD      (HL),A          ; store into hardware mario sprite value
 1DB2  3A0862    LD      A,(#6208)       ; load A with mario color
 1DB5  2C        INC     L               ; HL := #694E = hardware mario sprite color
@@ -6073,7 +6063,7 @@ FF = Extra Mario Icon
 1DC7  00 00                             ; unused
 
 ; an item was just picked up / jumped over / hit with hammer
- 
+
 1DC9  3E40      LD      A,#40           ; A := #40
 1DCB  324163    LD      (#6341),A       ; store into timer
 1DCE  3E02      LD      A,#02           ; A := 2
@@ -6172,7 +6162,7 @@ FF = Extra Mario Icon
 1E30  4F        LD      C,A             ; store into C
 1E31  3A0362    LD      A,(#6203)       ; load A with mario's X position
 
-1E34  00        NOP     
+1E34  00        NOP
 1E35  00        NOP                     ; [ what used to be here?  was it LD B,#7B to set sprite for 100 pts? ]
 
 ; draw the bonus score on the screen
@@ -6198,7 +6188,7 @@ FF = Extra Mario Icon
 1E4E  C0        RET     NZ              ; no, return
 
 1E4F  AF        XOR     A               ; else A := 0
-1E50  32306A    LD      (#6A30),A       ; clear this 
+1E50  32306A    LD      (#6A30),A       ; clear this
 1E53  324063    LD      (#6340),A       ; clear this
 1E56  C9        RET                     ; return
 
@@ -6223,7 +6213,7 @@ FF = Extra Mario Icon
 1E6F  DA741E    JP      C,#1E74         ; if on left side, skip next step
 
 1E72  3E80      LD      A,#80           ; else load A with sprite facing right
-1E74  324D69    LD      (#694D),A       ; set mario sprite 
+1E74  324D69    LD      (#694D),A       ; set mario sprite
 1E77  C3851E    JP      #1E85           ; jump ahead
 
 ; check for end of level on girders and elevators
@@ -6240,7 +6230,7 @@ FF = Extra Mario Icon
 1E84  C0        RET     NZ              ; no, return
 
 1E85  3E16      LD      A,#16           ; else A := #16
-1E87  320A60    LD      (#600A),A       ; store into game mode2
+1E87  320A60    LD      (GameMode2),A       ; store into game mode2
 1E8A  E1        POP     HL              ; pop stack to get higher address
 1E8B  C9        RET                     ; return to a higher level [returns to #00D2]
 
@@ -6262,11 +6252,11 @@ FF = Extra Mario Icon
 1E99  EF        RST     #28             ; jump based on A
 
 1E9A  A0 1E                     0       ; #1EA0
-1E9C  09 1F                     1       ; #1F09 
+1E9C  09 1F                     1       ; #1F09
 1E9E  23 1F                     2       ; #1F23
 
 ; arrive right when an item is hit
-    
+
 1EA0  3A5263    LD      A,(#6352)       ; load A with ???
 1EA3  FE65      CP      #65             ; == #65 ?
 1EA5  21B869    LD      HL,#69B8        ; load HL with sprites for pies
@@ -6296,7 +6286,7 @@ FF = Extra Mario Icon
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 ;
-; It turns out that IX+15 is used by firefoxes and fireballs as a counter for their animation 
+; It turns out that IX+15 is used by firefoxes and fireballs as a counter for their animation
 ; This value can be 0, 1, or 2 and is updated every frame
 ;
 ; For pies, this value is 0, #7C or #CC, because it grabs the +5 slot of the next pie when one is hit
@@ -6417,7 +6407,7 @@ FF = Extra Mario Icon
 
 ; called from main routine at #1983
 ; used to roll barrels
-  
+
 1F72  3A2762    LD      A,(#6227)       ; load a with screen number
 1F75  3D        DEC     a               ; is this the girders ?
 1F76  c0        RET     NZ              ; no, return
@@ -6447,7 +6437,7 @@ FF = Extra Mario Icon
 1F96  3D        DEC     A               ; is this a crazy barrel?
 1F97  CAEC20    JP      Z,#20EC         ; Yes, jump ahead
 
-1F9A  DD7E02    LD      A,(IX+#02)      ; no load A with next indicator - determines the direction of the barrel 
+1F9A  DD7E02    LD      A,(IX+#02)      ; no load A with next indicator - determines the direction of the barrel
 1F9D  1F        RRA                     ; Is this barrel going down a ladder?
 1F9E  DAAC1F    JP      C,#1FAC         ; Yes, jump away to ladder sub.
 
@@ -6475,7 +6465,7 @@ FF = Extra Mario Icon
 
 1FB9  DD7E15    LD      A,(IX+#15)      ; load A with Barrel #15 indicator, zero = normal barrel,  1 = blue barrel
 1FBC  07        RLCA                    ; roll left twice (multiply by 4)
-1FBD  07        RLCA    
+1FBD  07        RLCA
 1FBE  C615      ADD     A,#15           ; add #15
 1FC0  DD7707    LD      (IX+#07),A      ; store into +7 indicator = sprite used
 
@@ -6534,8 +6524,8 @@ FF = Extra Mario Icon
 200C  2C        INC     L
 200D  7D        LD      A,L             ; Load A with Barrel's Y position
 200E  DD7705    LD      (IX+#05),A      ; store back into barrel's y position
-2011  CDDE23    CALL    #23DE           ; 
-2014  CDB424    CALL    #24B4           ; 
+2011  CDDE23    CALL    #23DE           ;
+2014  CDB424    CALL    #24B4           ;
 2017  DD7E03    LD      A,(IX+#03)      ; Load A with Barrels' X position
 201A  FE1C      CP      #1C             ; have we arrived at left edge of girder?
 201C  DA2F20    JP      C,#202F         ; yes, jump ahead to handle
@@ -6559,14 +6549,14 @@ FF = Extra Mario Icon
 2038  DD3612FF  LD      (IX+#12),#FF    ;
 203C  DD3613F0  LD      (IX+#13),#F0    ;
 2040  DD7714    LD      (IX+#14),A      ;
-2043  DD770E    LD      (IX+#0E),A      ; clear the barrel's edge indicator     
+2043  DD770E    LD      (IX+#0E),A      ; clear the barrel's edge indicator
 2046  DD7704    LD      (IX+#04),A      ; clear ???
 2049  DD7706    LD      (IX+#06),A      ;
 204C  DD360208  LD      (IX+#02),#08    ; load barrel properties with various numbers to indicate edge roll?
 2050  C3BA21    JP      #21BA           ; jump way ahead - we're done, store values and try next barrel
 
 ; jump from #1FA9
-; we arrive here because the barrel isn't going left, right, or down a ladder 
+; we arrive here because the barrel isn't going left, right, or down a ladder
 ; could be crazy barrel or barrel going over edge
 
 2053  D9        EXX                     ; Exchange DE, HL, BC with counterparts
@@ -6689,7 +6679,7 @@ FF = Extra Mario Icon
 
 ; else this crazy barrel is no longer crazy
 
-2120  DD7E07    LD      A,(IX+#07)      ; else Load A with +7 = sprite used  
+2120  DD7E07    LD      A,(IX+#07)      ; else Load A with +7 = sprite used
 2123  E6FC      AND     #FC             ; clear right 2 bits
 2125  F601      OR      #01             ; turn on bit 0
 2127  DD7707    LD      (IX+#07),A      ; store result
@@ -6708,12 +6698,12 @@ FF = Extra Mario Icon
 2146  CD0724    CALL    #2407           ; load HL based on +14 status. also uses +11 and +12
 2149  CDCB22    CALL    #22CB           ; do stuff for crazy barrels ?
 214C  DD7E05    LD      A,(IX+#05)      ; load A with barrel Y position
-214F  DD7719    LD      (IX+#19),A      ; store in barrel #19 satus.  used for crazy barrels?
+214F  DD7719    LD      (IX+#19),A      ; store in barrel #19 status.  used for crazy barrels?
 2152  AF        XOR     A               ; A := 0
 
 2153  DD7714    LD      (IX+#14),A      ; clear +#14 (???)
 2156  DD7704    LD      (IX+#04),A      ; clear +#4 (???)
-2159  DD7706    LD      (IX+#06),A      ; store 0 in these barrel indiacators
+2159  DD7706    LD      (IX+#06),A      ; store 0 in these barrel indicators
 215C  C3BA21    JP      #21BA           ; jump ahead - we're done, store values and try next barrel
 
 ; arrive here every 8 pixels moved by barrel from #2001
@@ -6747,23 +6737,23 @@ FF = Extra Mario Icon
 2184  BA        CP      D               ; is the barrel already below mario  ?
 2185  D8        RET     C               ; yes, return without taking ladder
 
-2186  3A8063    LD      A,(#6380)       ; else load A with difficutly from 1 to 5.  usually the level but increases during play
+2186  3A8063    LD      A,(#6380)       ; else load A with difficulty from 1 to 5.  usually the level but increases during play
 2189  1F        RRA                     ; roll right (div 2) .  now can be 0, 1, or 2
 218A  3C        INC     A               ; increment.  result is now 1, 2, or 3 based on skill level
 218B  47        LD      B,A             ; store into B
 218C  3A1860    LD      A,(#6018)       ; load A with random timer ?
 218F  4F        LD      C,A             ; store into C for later use ?
 2190  E603      AND     #03             ; mask bits.   result now random number between 0 and 3
-2192  B8        CP      B               ; compare with value compted above based on skill
+2192  B8        CP      B               ; compare with value computed above based on skill
 2193  D0        RET     NC              ; return if greater.  on highest skill this works 75% of time, only returns on 3
 
-2194  211060    LD      HL,#6010        ; load HL with player input.  
+2194  211060    LD      HL,InputState        ; load HL with player input.
 
-; #6010 - copy of input (see #6011). except when jump pressed, bit 7 is set momentarily.
-; #6011 - input.  right sets bit 0, left sets bit 1, up sets bit 2, down sets bit 3, jump sets bit 4
+; InputState - copy of RawInput, except when jump is pressed, bit 7 is set momentarily
+; RawInput - right sets bit 0, left sets bit 1, up sets bit 2, down sets bit 3, jump sets bit 4
 
-2197  3A0362    LD      A,(#6203)       ; load A with mario's X position
-219A  BB        CP      E               ; compare with barrels x position
+2197  3A0362    LD      A,(#6203)       ; load A with mario's x position
+219A  BB        CP      E               ; compare with barrel's x position
 219B  CAB221    JP      Z,#21B2         ; if equal, then go down ladder
 
 219E  D2A921    JP      NC,#21A9        ; if barrel is to right of mario, then check for moving to left
@@ -6830,7 +6820,7 @@ FF = Extra Mario Icon
 21F6  83        ADD     A,E             ; add to E to get the movement
 21F7  5F        LD      E,A             ; put back
 21F8  1A        LD      A,(DE)          ; load A with data from table
-21F9  321060    LD      (#6010),A       ; store into copy of input
+21F9  321060    LD      (InputState),A       ; store into copy of input
 21FC  2C        INC     L               ; HL := #63CD (timer)
 21FD  7E        LD      A,(HL)          ; load timer
 21FE  35        DEC     (HL)            ; decrement
@@ -6876,7 +6866,7 @@ FF = Extra Mario Icon
 
 222D  2D        DEC     L               ; put HL back where it was
 222E  34        INC     (HL)            ; increase ladder status.  now it is moving down
-222F  2C        INC     L               ; 
+222F  2C        INC     L               ;
 2230  2C        INC     L               ; HL := #628A or #6282
 2231  CD4322    CALL    #2243           ; only continue below if mario is on the ladder
 
@@ -6950,7 +6940,7 @@ FF = Extra Mario Icon
 2284  34        INC     (HL)            ; increase (move mario down one pixel)
 2285  CDC03F    CALL    #3FC0           ; sets mario sprite to on ladder with left hand up and HL to #694F (mario's sprite Y position) [this line seems like a patch ??? orig could be  LD HL,#694F ]
 2288  34        INC     (HL)            ; increase sprite (move mario down one pixel in the hardware .  immediate update)
-2289  C9        RET                     ; return  
+2289  C9        RET                     ; return
 
 228A  1F        RRA                     ; rotate right A.  is A odd ?
 228B  DA8122    JP      C,#2281         ; yes, loop back
@@ -6973,7 +6963,7 @@ FF = Extra Mario Icon
 22A0  34        INC     (HL)            ; else increase (HL) - the ladder is now moving up
 22A1  C9        RET                     ; return
 
-; arrive from jump at #221A 
+; arrive from jump at #221A
 ; a rectractable ladder is moving up
 ; HL popped from stack is either 6280 for left ladder or 6288 for right ladder
 
@@ -6986,7 +6976,7 @@ FF = Extra Mario Icon
 22A8  C0        RET     NZ              ; no, return
 
 22A9  3602      LD      (HL),#02        ; else set (HL) to 2
-22AB  2D        DEC     L               ; 
+22AB  2D        DEC     L               ;
 22AC  35        DEC     (HL)            ; decrease ladder Y value - makes ladder move up
 22AD  CDBD22    CALL    #22BD           ; update the sprite
 22B0  3E68      LD      A,#68           ; A := #68
@@ -6999,7 +6989,7 @@ FF = Extra Mario Icon
 22B5  0680      LD      B,#80           ; B := #80
 22B7  2D        DEC     L
 22B8  2D        DEC     L
-22B9  70        LD      (HL),B          ; 
+22B9  70        LD      (HL),B          ;
 22BA  2D        DEC     L               ; set HL to ladder status
 22BB  77        LD      (HL),A          ; set ladder status to 0 == all the way up
 22BC  C9        RET                     ; return
@@ -7077,7 +7067,7 @@ FF = Extra Mario Icon
 
 ; check for use with crazy barrels when difficulty is 5
 
-231A  3A0362    LD      A,(#6203)       ; load A with mario's X position        
+231A  3A0362    LD      A,(#6203)       ; load A with mario's X position
 231D  DD9603    SUB     (IX+#03)        ; subtract the barrel's X position
 2320  0EFF      LD      C,#FF           ; load C with #FF
 2322  DA2623    JP      C,#2326         ; if barrel is to left of mario, then jump ahead
@@ -7090,7 +7080,7 @@ FF = Extra Mario Icon
 232A  CB11      RL      C               ; rotate left C
 232C  DD7110    LD      (IX+#10),C      ; store C into +10
 232F  DD7711    LD      (IX+#11),A      ; store A into +11
-2332  C9        RET     
+2332  C9        RET
 
 ; called from #2007 when barrels are rolling
 ; called from #     when mario is moving left or right on girders
@@ -7226,7 +7216,7 @@ through 64 Kbytes if no match is found.
 23C0  17        RLA                     ; rotate left (mult by 2)
 23C1  3C        INC     A               ; add 1
 23C2  0600      LD      B,#00           ; B := 0
-23C4  CB10      RL      B               ; 
+23C4  CB10      RL      B               ;
 23C6  CB27      SLA     A
 23C8  CB10      RL      B
 23CA  CB27      SLA     A
@@ -7251,7 +7241,7 @@ through 64 Kbytes if no match is found.
 23E2  C20324    JP      NZ,#2403        ; if not, jump ahead, store new timer value and return
 
 23E5  AF        XOR     A               ; A := 0
-23E6  DDCB0726  SLA     (IX+#07)        ; shift left the barrel sprite status, push bit 7 into carry flag 
+23E6  DDCB0726  SLA     (IX+#07)        ; shift left the barrel sprite status, push bit 7 into carry flag
 23EA  17        RLA                     ; rotate in carry flag into A
 23EB  DDCB0826  SLA     (IX+#08)        ; shift left the other barrel color, push bit 7 into carry flag
 23EF  17        RLA                     ; rotate in carry flag into A
@@ -7259,7 +7249,7 @@ through 64 Kbytes if no match is found.
 23F1  3E03      LD      A,#03           ; A := 3
 23F3  B1        OR      C               ; bitwise OR with C
 23F4  CD0930    CALL    #3009           ; ???
-23F7  1F        RRA                     ; 
+23F7  1F        RRA                     ;
 23F8  DDCB081E  RR      (IX+#08)        ; rotate right the barrel's color
 23FC  1F        RRA                     ;
 23FD  DDCB071E  RR      (IX+#07)        ; Roll these values back
@@ -7273,10 +7263,10 @@ through 64 Kbytes if no match is found.
 ;
 
 2407  DD7E14    LD      A,(IX+#14)      ; load A with Barrel +14 status
-240A  07        RLCA    
-240B  07        RLCA    
-240C  07        RLCA    
-240D  07        RLCA                    ; rotate left 4 times   
+240A  07        RLCA
+240B  07        RLCA
+240C  07        RLCA
+240D  07        RLCA                    ; rotate left 4 times
 240E  4F        LD      C,A             ; save to C for use next 2 steps
 240F  E60F      AND     #0F             ; mask with #0F.  now between #00 and #0F
 2411  67        LD      H,A             ; store into H
@@ -7299,7 +7289,7 @@ through 64 Kbytes if no match is found.
 2425  FE16      CP      #16             ; is this greater than #16 ?
 2427  D8        RET     C               ; yes, return
 
-2428  15        DEC     D               ; no, 
+2428  15        DEC     D               ; no,
 2429  1C        INC     E               ; DE := #0001
 242A  FEEA      CP      #EA             ; is Mario's position > #EA ?
 242C  D0        RET     NC              ; yes, return
@@ -7329,7 +7319,7 @@ through 64 Kbytes if no match is found.
 
 ; called from #0D62
 ; 1.  runs checksum on the NINTENDO, breaks if not correct
-; 2.  
+; 2.
 
 2441  210C3F    LD      HL,#3F0C        ; load HL with ROM area that has NINTENDO written
 2444  3E5E      LD      A,#5E           ; A := #5E = constant so the checksum comes to zero
@@ -7339,7 +7329,7 @@ through 64 Kbytes if no match is found.
 2449  23        INC     HL              ; next letter
 244A  10FC      DJNZ    #2448           ; loop until done
 
-244C  FD211063  LD      IY,#6310        ; 
+244C  FD211063  LD      IY,#6310        ;
 2450  A7        AND     A               ; A == 0 ? checksum OK ?
 2451  CA5624    JP      Z,#2456         ; yes, skip next step
 
@@ -7360,7 +7350,7 @@ through 64 Kbytes if no match is found.
 
 246E  218B3C    LD      HL,#3C8B        ; otherwise we're on rivets.  load HL with table data for rivets
 
-2471  DD210063  LD      IX,#6300        ; #6300 is used for ladder positions? 
+2471  DD210063  LD      IX,#6300        ; #6300 is used for ladder positions?
 2475  110500    LD      DE,#0005        ; DE := 5 = offset
 
 2478  7E        LD      A,(HL)          ; load A with the next item of data
@@ -7384,7 +7374,7 @@ through 64 Kbytes if no match is found.
 248D  23        INC     HL              ; next HL
 248E  7E        LD      A,(HL)          ; load A with table data
 248F  DD7715    LD      (IX+#15),A      ; store into index +#15
-2492  23        INC     HL              ; 
+2492  23        INC     HL              ;
 2493  23        INC     HL              ; next HL, next HL
 2494  7E        LD      A,(HL)          ; load A with table data
 2495  DD772A    LD      (IX+#2A),A      ; store into index +#2A
@@ -7462,7 +7452,7 @@ through 64 Kbytes if no match is found.
 2503  DD7E03    LD      A,(IX+#03)      ; load A with pie X position
 2506  77        LD      (HL),A          ; store into sprite
 2507  2C        INC     L               ; next address
-2508  DD7E07    LD      A,(IX+#07)      ; load A with pie sprite value 
+2508  DD7E07    LD      A,(IX+#07)      ; load A with pie sprite value
 250B  77        LD      (HL),A          ; store into sprite
 250C  2C        INC     L               ; next address
 250D  DD7E08    LD      A,(IX+#08)      ; load A with pie color
@@ -7521,7 +7511,7 @@ through 64 Kbytes if no match is found.
 2558  DD3605CC  LD      (IX+#05),#CC    ; store #CC into pie's Y position
 255C  3AA662    LD      A,(#62A6)       ; load A with master direction vector for lower conveyor
 255F  07        RLCA                    ; is this tray moving to the right ?
-    
+
 2560  DD360307  LD      (IX+#03),#07    ; set pie X position to 7
 2564  D27625    JP      NC,#2576        ; if tray moving right, skip ahead
 
@@ -7674,7 +7664,7 @@ through 64 Kbytes if no match is found.
 
 2660  2D        DEC     L               ; HL := #62A2 = middle conveyor counter
 2661  11EC69    LD      DE,#69EC        ; load DE with middle pulley sprites
-2664  EB        EX      DE,HL           ; DE <> HL 
+2664  EB        EX      DE,HL           ; DE <> HL
 2665  CDA626    CALL    #26A6           ; animate the pulleys
 2668  E67F      AND     #7F             ; mask bits, A now betwen #7F and 0 (turns off bit 7)
 266A  21ED69    LD      HL,#69ED        ; load HL with ???
@@ -8032,7 +8022,7 @@ through 64 Kbytes if no match is found.
 2857  3A0562    LD      A,(#6205)       ; load A with Mario's Y position
 285A  C60C      ADD     A,#0C           ; add #0C (12 decimal)
 285C  4F        LD      C,A             ; copy to C
-285D  3A1060    LD      A,(#6010)       ; load A with copy of input (see #6011). except when jump pressed, bit 7 is set momentarily.
+285D  3A1060    LD      A,(InputState)       ; load A with copy of input (see RawInput). except when jump pressed, bit 7 is set momentarily.
 2860  E603      AND     #03             ; mask bits, now between 0 and 3
 2862  210805    LD      HL,#0508        ; H := #05, L := #08.  [H is the left-right window for jumping items, L is the up-down window?]
 2865  CA6B28    JP      Z,#286B         ; if masked input was zero, skip next step
@@ -8046,12 +8036,12 @@ through 64 Kbytes if no match is found.
 
 
         ; 3E88  3A2762    LD      A,(#6227)     ; load A with screen number
-        ; 3E8B  E5        PUSH    HL            ; save HL       
+        ; 3E8B  E5        PUSH    HL            ; save HL
         ; 3E8C  EF        RST     #28           ; jump to new location based on screen number
 
         ; data for above:
 
-        ; 3E8D  00 00 
+        ; 3E8D  00 00
         ; 3E8F  99 3E                           ; #3E99 - girders
         ; 3E91  B0 28                           ; #28B0 - pie
         ; 3E93  E0 28                           ; #28E0 - elevator
@@ -8176,7 +8166,7 @@ through 64 Kbytes if no match is found.
 2927  DA3029    JP      C,#2930         ; on carry, skip next 2 steps
 
 292A  DD960A    SUB     (IX+#0A)        ; subtract +#0A value height???
-292D  D24C29    JP      NC,#294C        ; if no carry, add offset in DE and loop again 
+292D  D24C29    JP      NC,#294C        ; if no carry, add offset in DE and loop again
 
 2930  FD7E03    LD      A,(IY+#03)      ; load A with X position of item 1
 2933  DD9603    SUB     (IX+#03)        ; subtract X position of item 2.  carry?
@@ -8211,7 +8201,7 @@ through 64 Kbytes if no match is found.
 2956  F7        RST     #30             ; if level is elevators RET from this sub now.  no hammers on elevators.
 2957  CD7429    CALL    #2974           ; load A with 1 if hammer is grabbed, 0 if no grab
 295A  321862    LD      (#6218),A       ; store into hammer grabbing indicator
-295D  0F        RRCA    
+295D  0F        RRCA
 295E  0F        RRCA                    ; rotate right twice.  if hammer grabbed, A is now #40
 295F  328560    LD      (#6085),A       ; play sound for bonus
 2962  78        LD      A,B             ; A := B .  this indicates which hammer was grabbed if any
@@ -8228,9 +8218,9 @@ through 64 Kbytes if no match is found.
 2973  C9        RET                     ; return
 
 ; called from #2957 above
-; check for hammer grab ?   
+; check for hammer grab ?
 
-2974  FD210062  LD      IY,#6200        ; load IY with start of mario sprite values 
+2974  FD210062  LD      IY,#6200        ; load IY with start of mario sprite values
 2978  3A0562    LD      A,(#6205)       ; load A with mario's Y position
 297B  4F        LD      C,A             ; copy to C
 297C  210804    LD      HL,#0408        ; H := 4, L := 8
@@ -8314,7 +8304,7 @@ through 64 Kbytes if no match is found.
 29EC  33        INC     SP              ; increase SP twice so the RET skips one level
 29ED  C9        RET                     ; returns to higher subroutine (#1C08)
 
-29EE  3A0C62    LD      A,(#620C)       ; load A with mario's jump height 
+29EE  3A0C62    LD      A,(#620C)       ; load A with mario's jump height
 29F1  D60E      SUB     #0E             ; subtract #0E (14 decimal)
 29F3  BA        CP      D               ; compare to elevator height - 4. is mario hitting his head on the bottom of the elevator ?
 29F4  D21B2A    JP      NC,#2A1B        ; if so, mario is dead.  set dead and return.
@@ -8545,7 +8535,7 @@ FF = Extra Mario Icon
 2B03  320362    LD      (#6203),A       ; set mario's X position
 2B06  324C69    LD      (#694C),A       ; set mario's sprite X position
 2B09  CD1F24    CALL    #241F           ; loads DE with something depending on mario's position
-2B0C  210362    LD      HL,#6203        ; load HL with mario's X position 
+2B0C  210362    LD      HL,#6203        ; load HL with mario's X position
 2B0F  1D        DEC     E               ; E == 1 ?
 2B10  CA182B    JP      Z,#2B18         ; yes, skip ahead
 
@@ -8556,7 +8546,7 @@ FF = Extra Mario Icon
 2B18  35        DEC     (HL)            ; decrease mario's X position
 2B19  C9        RET                     ; return
 
-2B1A  34        INC     (HL)            ; increase 
+2B1A  34        INC     (HL)            ; increase
 2B1B  C9        RET                     ; return
 
 ; called from #1C05
@@ -8602,7 +8592,7 @@ FF = Extra Mario Icon
 
 ; arrive from #2B2D when jumping, not on girders, via call from #2B20
 
-2B53  3A0362    LD      A,(#6203)       ; load A with mario X position  
+2B53  3A0362    LD      A,(#6203)       ; load A with mario X position
 2B56  D603      SUB     #03             ; subtract 3
 2B58  67        LD      H,A             ; store into H
 2B59  3A0562    LD      A,(#6205)       ; load A with mario's Y position
@@ -8683,7 +8673,7 @@ FF = Extra Mario Icon
 ; when jumping his head (harmlessly) into a girder above him?
 
 2BCB  E60F      AND     #0F             ; mask bits, now between 0 and #F
-2BCD  D609      SUB     #09             ; subtract 9.  now between #F7 and 6 
+2BCD  D609      SUB     #09             ; subtract 9.  now between #F7 and 6
 
 2BCF  4F        LD      C,A             ; C := A
 2BD0  7B        LD      A,E             ; A := E = original Y location
@@ -8788,19 +8778,19 @@ FF = Extra Mario Icon
 
 2C41  CD5700    CALL    #0057           ; else load A with a random number
 
-;; hack to increase crazy barrels 
+;; hack to increase crazy barrels
 ;; 2C41  3E 00          LD A, #00
 ;; 2C43  00             NOP
 
-;; hack to increase crazy barrels: 
+;; hack to increase crazy barrels:
 ;; 2C44 E600    AND     #00             ; mask all 4 bits to zero
 ;;
 
 2C44  E60F      AND     #0F             ; mask out left 4 bits to zero.  A becomes a number between 0 and #F
-2C46  C2862C    JP      NZ,#2C86        ; If result is not zero, deploy a normal barrel.  this routine sets #6382 to 0,  
+2C46  C2862C    JP      NZ,#2C86        ; If result is not zero, deploy a normal barrel.  this routine sets #6382 to 0,
                                         ; loads A with 3 and returns to #2C4F
 
-; else get a crazy barrel 
+; else get a crazy barrel
 ; can arrive here from #2C7E = first click of round is always crazy barrel
 
 2C49  3E01      LD      A,#01           ; else A := 1 = crazy barrel code
@@ -8836,7 +8826,7 @@ FF = Extra Mario Icon
 2C72  3A8263    LD      A,(#6382)       ; load A with crazy/blue barrel indicator
 2C75  f680      or      #80             ; or with #80  - set leftmost bit on to indicate blue barrel is next
 2C77  328263    LD      (#6382),A       ; store into crazy/blue barrel indicator
-2C7A  c9        RET                     ; return with blue barrel   
+2C7A  c9        RET                     ; return with blue barrel
 
 ; we arrive here if timer is within first 2 clicks when deploying a barrel from #2C18
 
@@ -8847,7 +8837,7 @@ FF = Extra Mario Icon
 2C81  3E02      LD      A,#02           ; else A := 2 for the second barrel; it is always normal
 2C83  C34B2C    JP      #2C4B           ; jump back and continue deployment
 
-; arrive here when the second barrel is being deployed?  
+; arrive here when the second barrel is being deployed?
 ; from #2C20
 
 2C86  AF        XOR     A               ; A := 0
@@ -8878,7 +8868,7 @@ FF = Extra Mario Icon
 2CAB  0F        RRCA                    ; is this barrel already rolling ?
 2CAC  DAB32C    JP      C,#2CB3         ; yes, then jump ahead and test next barrel
 
-2CAF  0F        RRCA                    ; else is this barrel already being deployed ? 
+2CAF  0F        RRCA                    ; else is this barrel already being deployed ?
 2CB0  D2B82C    JP      NC,#2CB8        ; no, then jump ahead
 
 2CB3  DD19      ADD     IX,DE           ; Increase to next barrel
@@ -8922,7 +8912,7 @@ FF = Extra Mario Icon
 2CF4  19        ADD     HL,DE           ; compute which sprite to remove based on timer
 2CF5  72        LD      (HL),D          ; clear the sprite
 
-; IX holds 6700 +N*20 = start of barrel N info 
+; IX holds 6700 +N*20 = start of barrel N info
 ; a barrel is being deployed
 
 2CF6  DD360715  LD      (IX+#07),#15    ; set barrel sprite value to #15
@@ -9033,7 +9023,7 @@ FF = Extra Mario Icon
 2DA1  DD360202  LD      (IX+#02),#02    ; load motion indicator with 2 (rolling right)
 
 2DA5  DD360001  LD      (IX+#00),#01    ; barrel is now active
-2DA9  DD360F01  LD      (IX+#0F),#01    ; 
+2DA9  DD360F01  LD      (IX+#0F),#01    ;
 2DAD  AF        XOR     A               ; A := 0
 2DAE  DD7710    LD      (IX+#10),A      ; clear this indicator (???)
 2DB1  DD7711    LD      (IX+#11),A
@@ -9050,7 +9040,7 @@ FF = Extra Mario Icon
 2DCA  1A        LD      A,(DE)          ; load A with kong hand Y position
 2DCB  DD7705    LD      (IX+#05),A      ; store in barrel's Y position
 2DCE  215C38    LD      HL,#385C        ; load HL with table data start
-2DD1  CD4E00    CALL    #004E           ; update kong's sprites 
+2DD1  CD4E00    CALL    #004E           ; update kong's sprites
 2DD4  210B69    LD      HL,#690B        ; load HL with start of Kong sprite
 2DD7  0EFC      LD      C,#FC           ; load c with offset of -4
 2DD9  FF        RST     #38             ; move kong
@@ -9105,7 +9095,7 @@ FF = Extra Mario Icon
 2E15  0F        RRCA                    ; is the sprite active ?
 2E16  D2A72E    JP      NC,#2EA7        ; no, jump ahead and check to deploy a new one
 
-2E19  3A1A60    LD      A,(#601A)       ; else load A with timer 
+2E19  3A1A60    LD      A,(#601A)       ; else load A with timer
 
 ; #601A - Timer constantly counts down from FF to 00 and then FF to 00 again and again ... 1 count per frame
 ; result is that each of the boucners have their sprites changed once every 16 clicks, or every 1/16 of sec.?
@@ -9114,7 +9104,7 @@ FF = Extra Mario Icon
 2E1E  C2292E    JP      NZ,#2E29        ; if not zero, jump ahead..
 
 2E21  FD7E01    LD      A,(IY+#01)      ; load A with sprite value
-2E24  EE07      XOR     #07             ; flip the right 3 bits 
+2E24  EE07      XOR     #07             ; flip the right 3 bits
 2E26  FD7701    LD      (IY+#01),A      ; store result = change the bouncer fom open to closed
 
 2E29  DD7E0D    LD      A,(IX+#0D)      ; load A with +D = either 1 or 4.  1 when going across , 4 when going down.
@@ -9137,7 +9127,7 @@ FF = Extra Mario Icon
 2E4B  DD750E    LD      (IX+#0E),L
 2E4E  DD740F    LD      (IX+#0F),H      ; store the updated HL for next time
 2E51  DD7E03    LD      A,(IX+#03)      ; load A with X position
-2E54  FEB7      CP      #B7             ; < #B7 ? 
+2E54  FEB7      CP      #B7             ; < #B7 ?
 2E56  DA6C2E    JP      C,#2E6C         ; no, skip ahead
 
 2E59  79        LD      A,C             ; yes, A := C
@@ -9219,7 +9209,7 @@ FF = Extra Mario Icon
 2EE3  DAED2E    JP      C,#2EED         ; yes, skip next 2 steps
 
 2EE6  111C6A    LD      DE,#6A1C        ; else load DE with hardware address of 2nd hammer sprite
-2EE9  DD219066  LD      IX,#6690        ; load IX with 2nd hammer sprite 
+2EE9  DD219066  LD      IX,#6690        ; load IX with 2nd hammer sprite
 
 2EED  DD360E00  LD      (IX+#0E),#00    ; store 0 into +#E == ???
 2EF1  DD360FF0  LD      (IX+#0F),#F0    ; store #F0 into +#F (???)
@@ -9253,7 +9243,7 @@ FF = Extra Mario Icon
 2F28  CBC1      SET     0,C
 2F2A  DD360905  LD      (IX+#09),#05    ; set width?
 2F2E  DD360A06  LD      (IX+#0A),#06    ; set height?
-2F32  DD360F00  LD      (IX+#0F),#00    ; 
+2F32  DD360F00  LD      (IX+#0F),#00    ;
 2F36  DD360EF0  LD      (IX+#0E),#F0    ; set offset for left side of mario (#F0 == -#10)
 2F3A  CB79      BIT     7,C             ; is mario facing left?
 2F3C  CA432F    JP      Z,#2F43         ; yes, skip next step
@@ -9290,7 +9280,7 @@ FF = Extra Mario Icon
 2F76  3A8963    LD      A,(#6389)       ; load A with previous background music
 2F79  328960    LD      (#6089),A       ; set music with what it was before the hammer was grabbed
 
-; 
+;
 
 2F7C  EB        EX      DE,HL           ; DE <> HL
 2F7D  3A0362    LD      A,(#6203)       ; load A with mario's X position
@@ -9386,7 +9376,7 @@ FF = Extra Mario Icon
 2FF0  7D        LD      A,L             ; load A with Y position (inflated by 4)
 2FF1  0F        RRCA                    ; Roll right 3 times
 2FF2  0F        RRCA                    ;
-2FF3  0F        RRCA                    ;  
+2FF3  0F        RRCA                    ;
 2FF4  E61F      AND     #1F             ; mask out left 3 bits to zero (number has been divided by 8)
 2FF6  6F        LD      L,A             ; Load L with this new position
 2FF7  7C        LD      A,H             ; load A with barrel's X position
@@ -9395,7 +9385,7 @@ FF = Extra Mario Icon
 2FFB  5F        LD      E,A             ; load E with result
 2FFC  AF        XOR     A               ; A := 0
 2FFD  67        LD      H,A             ; H := 0
-2FFE  CB13      RL      E               ; rotate E left 
+2FFE  CB13      RL      E               ; rotate E left
 3000  17        RLA                     ; Rotate A left [does nothing?  A is 0]
 3001  CB13      RL      E               ; rotate E left again
 3003  17        RLA                     ; rotate A left again ?
@@ -9419,7 +9409,7 @@ FF = Extra Mario Icon
 ; A is even
 
 300E  0E93      LD      C,#93           ; C := #93
-3010  0F        RRCA    
+3010  0F        RRCA
 3011  0F        RRCA                    ; roll right twice
 3012  D21730    JP      NC,#3017        ; no carry, skip next step
 
@@ -9436,7 +9426,7 @@ FF = Extra Mario Icon
 ; arrive from #300B when A is odd
 
 3022  0EB4      LD      C,#B4           ; C := #B4
-3024  0F        RRCA    
+3024  0F        RRCA
 3025  0F        RRCA                    ; rotate A right twice.  carry set ?
 3026  D22B30    JP      NC,#302B        ; no, skip next step
 
@@ -9456,7 +9446,7 @@ FF = Extra Mario Icon
 3038  C23130    JP      NZ,#3031        ; no, loop again
 
 303B  79        LD      A,C             ; A := C
-303C  0F        RRCA    
+303C  0F        RRCA
 303D  0F        RRCA                    ; rotate right twice
 303E  E603      AND     #03             ; mask bits, now between 0 and 3
 3040  FE03      CP      #03             ; == 3 ?
@@ -9478,7 +9468,7 @@ FF = Extra Mario Icon
 3051  0600      LD      B,#00           ; B := 0
 3053  210076    LD      HL,#7600        ; load HL with screen RAM address
 3056  CD6430    CALL    #3064           ; roll up left ladder
-3059  21C075    LD      HL,#75C0        ; load HL with screen RAM address 
+3059  21C075    LD      HL,#75C0        ; load HL with screen RAM address
 305C  CD6430    CALL    #3064           ; roll up right ladder
 305F  218E63    LD      HL,#638E        ; load HL with kong ladder climb counter
 3062  35        DEC     (HL)            ; decrease
@@ -9562,7 +9552,7 @@ FF = Extra Mario Icon
 
 30BB  E1        POP     HL              ; restore HL
 30BC  C9        RET                     ; return to program
-   
+
 ; arrive here from #1615 when rivets cleared
 ; clears all sprites for firefoxes, hammers and bonus items
 
@@ -9623,11 +9613,11 @@ FF = Extra Mario Icon
 310C  26 31                     4       ; #3126
 310E  31 31                     5       ; #3131
 
-; internal difficulty == 0 or 1. In this case, the fireball movement routine is only executed every other frame, so that fireballs move slowly. 
+; internal difficulty == 0 or 1. In this case, the fireball movement routine is only executed every other frame, so that fireballs move slowly.
 
 3110  3A 1A 60  LD      A,(#601A)       ; load A with this clock counts down from #FF to 00 over and over...
 3112  60        LD      H,B             ; load H with B == ??? from previous subroutine ???? [what is this doing here ?]
-3113  E601      AND     #01             ; \  If lowest bit of timer is 0 Return and continue as normal 
+3113  E601      AND     #01             ; \  If lowest bit of timer is 0 Return and continue as normal
 3115  FE01      CP      #01             ;  |
 3117  C8        RET     Z               ; /
 
@@ -9760,7 +9750,7 @@ FF = Extra Mario Icon
 
 ; This subroutine checks if fires 2 and 4 should enter freezer mode. They always both enter at the same time and they enter with a 25% probability
 ; every 256 frames (note that this is 256 actual frames, not 256 fireball code execution frames).
-; called from #31B1 above   
+; called from #31B1 above
 
 31DD  3A8063    LD      A,(#6380)       ; \  Return if internal difficulty is < 3, no freezers are allowed until difficulty 3.
 31E0  FE03      CP      #03             ;  |
@@ -9838,7 +9828,7 @@ FF = Extra Mario Icon
 
 3257  DD7E13    LD      A,(IX+#13)      ; \  Jump if our index into the Y-position adjustment table hasn't reached 0 yet
 325A  FE00      CP      #00             ;  |
-325C  C2B932    JP      NZ,#32B9        ; / 
+325C  C2B932    JP      NZ,#32B9        ; /
 
 325F  3E11      LD      A,#11           ; Reset index into Y-position adjustment table
 
@@ -10190,7 +10180,7 @@ FF = Extra Mario Icon
 ; Called from #32D2
 
 3478  DD6E1A    LD      L,(IX+#1A)      ; \ Load HL with address into Y-position table
-347B  DD661B    LD      H,(IX+#1B)      ; / 
+347B  DD661B    LD      H,(IX+#1B)      ; /
 347E  AF        XOR     A               ; \  Jump if HL is non-zero (i.e., if this is not the very first spawning frame)
 347F  010000    LD      BC,#0000        ;  |
 3482  ED4A      ADC     HL,BC           ;  |
@@ -10355,7 +10345,7 @@ FF = Extra Mario Icon
 3559:  00 60 00
 355C:  00 70 00
 355F:  00 80 00
-3562:  00 90 00 
+3562:  00 90 00
 
 ;  table data .. loaded at #025A when game is powered on or reset
 ; transferred into #6100 to #61AA
@@ -10370,7 +10360,7 @@ FF = Extra Mario Icon
 ; after this is the actual score
 ; the last 2 bytes are ???
 
-3565:  94 77 01 23 24 10 10 00 00 07 06 05 00 10 10 10 10 10 10 10 10 10 10 10 10 10 10 3F 00 50 76 00 F4 76 
+3565:  94 77 01 23 24 10 10 00 00 07 06 05 00 10 10 10 10 10 10 10 10 10 10 10 10 10 10 3F 00 50 76 00 F4 76
 3587:  96 77 02 1E 14 10 10 00 00 06 01 00 00 10 10 10 10 10 10 10 10 10 10 10 10 10 10 3F 00 00 61 00 F6 76
 35A9:  98 77 03 22 14 10 10 00 00 05 09 05 00 10 10 10 10 10 10 10 10 10 10 10 10 10 10 3F 00 50 59 00 F8 76
 35CB:  9A 77 04 24 18 10 10 00 00 05 00 05 00 10 10 10 10 10 10 10 10 10 10 10 10 10 10 3F 00 50 50 00 FA 76
@@ -10380,10 +10370,10 @@ FF = Extra Mario Icon
 ; used for high score entry ???
 
 360F:                                               3B
-3610:  5C 4B 5C 5B 5C 6B 5C 7B 5C 8B 5C 9B 5C AB 5C BB 
+3610:  5C 4B 5C 5B 5C 6B 5C 7B 5C 8B 5C 9B 5C AB 5C BB
 3620:  5C CB 5C 3B 6C 4B 6C 5B 6C 6B 6C 7B 6C 8B 6C 9B
 3630:  6C AB 6C BB 6C CB 6C 3B 7C 4B 7C 5B 7C 6B 7C 7B
-3640:  7C 8B 7C 9B 7C AB 7C BB 7C CB 7C 
+3640:  7C 8B 7C 9B 7C AB 7C BB 7C CB 7C
 
 ; #364B is used from #05E9
 
@@ -10449,7 +10439,7 @@ FF = Extra Mario Icon
 
 ; ???
 
-3806:  7C 75 01 09 08 01 3F 
+3806:  7C 75 01 09 08 01 3F
 
 ; table data used for game intro
 
@@ -10512,14 +10502,14 @@ FF = Extra Mario Icon
 ; used when kong jump at end of intro
 
 38B4:              FD FD FD FD FD FD FD FE FE FE FE FE
-38C0:  FE FF FF FF FF 00 00 01 01 01 
+38C0:  FE FF FF FF FF 00 00 01 01 01
 38CA:  7F                       ; end code
 
 
 ; used when kong jumps to left during intro at #0B70
 
 38CB:                                   FF FF FF FF FF
-38D0:  00 FF 00 00 01 00 01 01 01 01 01 7F 
+38D0:  00 FF 00 00 01 00 01 01 01 01 01 7F
 
 ; used after kong has jumped
 ; used in #0DA7.  end code is #AA
@@ -10548,11 +10538,11 @@ FF = Extra Mario Icon
 391C:  04 BF 68 20 68
 3921:  04 3F 70 20 70
 3926:  02 DF 6E 20 79
-3927:  AA 
+3927:  AA
 
 392C:  02 DF 58 A0 55   ; top right ledge angled down
 3931:  AA
-         
+
 ; this is table data
 ; used for animation of kong
 ; used from #2D24
@@ -10568,7 +10558,7 @@ FF = Extra Mario Icon
 3952:  00 70 08 44
 3956:  00 70 0A 44
 
-; used to animate kong 
+; used to animate kong
 
 395A:  47 27 08 4C
 395E:  2F A7 08 4C
@@ -10608,7 +10598,7 @@ FF = Extra Mario Icon
 ; used in #2D83
 
 39CC  BB                ; for crazy barrels
-39CD  4D                ; 
+39CD  4D                ;
 39CE  7F                ; deployed when #7F
 
 ; table data
@@ -10652,7 +10642,7 @@ FF = Extra Mario Icon
 ; used when rivets are cleared
 
 3A47:  05 AF F0 50 F0 AA
-3A4D:  05 AF E8 50 E8 AA 
+3A4D:  05 AF E8 50 E8 AA
 3A53:  05 AF E0 50 E0 AA
 3A59:  05 AF D8 50 D8 AA
 3A5F:  05 B7 58 48 58 AA
@@ -10686,7 +10676,7 @@ FF = Extra Mario Icon
 
 ; table data referenced in #34C7
 
-3AC4:  EE F0 DB A0 E6 C8 D6 78 EB F0 DB A0 E6 C8 E6 C8 
+3AC4:  EE F0 DB A0 E6 C8 D6 78 EB F0 DB A0 E6 C8 E6 C8
 
 ; table data referenced in #34ED
 
@@ -10698,7 +10688,7 @@ FF = Extra Mario Icon
 ; 1st byte is the code [6 = X character, 5 = circle girder used in rivets, 3 = conveyor, 2 = girder, 1 = broken ladder, 0 = ladder]
 ; 2nd and 3rd bytes are the X,Y locations to start drawing
 ; data used for #6300
- 
+
 
 3AE4:  02 97 38 68 38   ; top girder where girl sits
 3AE9:  02 9F 54 10 54   ; girder where kong sits
@@ -10852,11 +10842,11 @@ FF = Extra Mario Icon
 3DA0:  01 11 00 00 00 10 DB 68 01 40 00 00 08 01 01 01
 3DB0:  01 01 01 01 01 01 00 00 00 00 00 00 80 01 C0 FF
 3DC0:  01 FF FF 34 C3 39 00 67 80 69 1A 01 00 00 00 00
-3DD0:  00 00 00 00 04 00 10 00 00 00 00 00 
+3DD0:  00 00 00 00 04 00 10 00 00 00 00 00
 
 ; data used for the barrel pile next to kong
 ; called from #0FD7
-     
+
 3DDC  1E 18 0B 4B       ; first barrel
 3DE0  14 18 0B 4B       ; second barrel
 3DE4  1E 18 0B 3B       ; third barrel
@@ -10878,7 +10868,7 @@ FF = Extra Mario Icon
 3DFA:  7F 40 01 78 02 00        ; initial data for conveyors to release a fire ?
 
 ; table data called from #0FF5.  4 bytes
-     
+
 3E00  27 49 0C F0               ; oil can for girders
 3E04  7F 49 0C 88               ; oil can for conveyors ?
 
@@ -10888,7 +10878,7 @@ FF = Extra Mario Icon
 ; 3E0C is called also from #1000
 
 3E08:  1E 07            ; 1E is the hammer sprite value.  07 is hammer color
-3E0A:  03 09            ; ???   
+3E0A:  03 09            ; ???
 3E0C:  24 64            ; position of top hammer for girders.  24 is X, 64 is Y
 3E0E:  BB C0            ; bottom hammer for girders at BB, C0
 
@@ -10930,7 +10920,7 @@ FF = Extra Mario Icon
 3E58  93 74 0A F0               ; purse on rivets at 93,F0
 3E5C  33 75 0A 50               ; umbrella on rivets at 33,50
 
-; used in elevators - called from #10CC 
+; used in elevators - called from #10CC
 
 3E60:  44 03 08 04
 
@@ -11060,7 +11050,7 @@ FF = Extra Mario Icon
 
 ; ... overwrites the message from game creators...
 
-3EFF:  00     
+3EFF:  00
 3F00:  5C 76 49 4A 01 09 08 01 3F 7D 77 1E 19 1E 24 15  .(C)1981...NINTE
 3F10:  1E 14 1F 10 1F 16 10 11 1D 15 22 19 13 11 10 19  NDO.OF.AMERICA.I
 3F20:  1E 13 2B 3F                                      NC..
@@ -11079,18 +11069,18 @@ FF = Extra Mario Icon
 ; Original Dkong code, taken from mame set dkongj
 ;
 ;3F00:  43 4F 4E 47 52 41 54 55 4C 41 54 49 4F 4E 20 21  CONGRATULATION !
-;3F10:  49 46 20 59 4F 55 20 41 4E 41 4C 59 53 45 20 20  IF YOU ANALYSE  
-;3F20:  44 49 46 46 49 43 55 4C 54 20 54 48 49 53 20 20  DIFFICULT THIS  
+;3F10:  49 46 20 59 4F 55 20 41 4E 41 4C 59 53 45 20 20  IF YOU ANALYSE
+;3F20:  44 49 46 46 49 43 55 4C 54 20 54 48 49 53 20 20  DIFFICULT THIS
 ;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 
 3F30:  50 52 4F 47 52 41 4D 2C 57 45 20 57 4F 55 4C 44  PROGRAM,WE WOULD
 3F40:  20 54 45 41 43 48 20 59 4F 55 2E 2A 2A 2A 2A 2A   TEACH YOU.*****
-3F50:  54 45 4C 2E 54 4F 4B 59 4F 2D 4A 41 50 41 4E 20  TEL.TOKYO-JAPAN 
-3F60:  30 34 34 28 32 34 34 29 32 31 35 31 20 20 20 20  044(244)2151    
-3F70:  45 58 54 45 4E 54 49 4F 4E 20 33 30 34 20 20 20  EXTENTION 304   
-3F80:  53 59 53 54 45 4D 20 44 45 53 49 47 4E 20 20 20  SYSTEM DESIGN   
+3F50:  54 45 4C 2E 54 4F 4B 59 4F 2D 4A 41 50 41 4E 20  TEL.TOKYO-JAPAN
+3F60:  30 34 34 28 32 34 34 29 32 31 35 31 20 20 20 20  044(244)2151
+3F70:  45 58 54 45 4E 54 49 4F 4E 20 33 30 34 20 20 20  EXTENTION 304
+3F80:  53 59 53 54 45 4D 20 44 45 53 49 47 4E 20 20 20  SYSTEM DESIGN
 3F90:  49 4B 45 47 41 4D 49 20 43 4F 2E 20 4C 49 4D 2E  IKEGAMI CO. LIM.
 
 
@@ -11121,7 +11111,7 @@ FF = Extra Mario Icon
 
 ; called from #2285
 ; [seems like a patch ? - resets mario sprite when ladder descends]
- 
+
 3FC0  214D69    LD      HL,#694D        ; load HL with mario sprite value
 3FC3  3603      LD      (HL),#03        ; store 3 = mario on ladder with left hand up
 3FC5  2C        INC     L
@@ -11132,7 +11122,7 @@ FF = Extra Mario Icon
 ; unused ???
 
 3FC8:  00 00 41 7F 7F 41 00 00
-3FD0:  00 7F 7F 18 3C 76 63 41 
+3FD0:  00 7F 7F 18 3C 76 63 41
 3FD8:  00 00 7F 7F 49 49 49 41
 3FE0:  00 1C 3E 63 41 49 79 79
 3FE8:  00 7C 7E 13 11 13 7E 7C
@@ -11145,7 +11135,7 @@ FF = Extra Mario Icon
 0111 1111 0111 1111 0001 1000 0011 1100 0111 0110 0110 0011 0100 0001
 0000 0000 0111 1111 0111 1111 0100 1001 0100 1001 0100 1001 0100 0001
 0001 1100 0011 1110 0110 0011 0100 0001 0100 1001 0111 1001 0111 1001
-0111 1100 
+0111 1100
 
 
 
@@ -11159,35 +11149,35 @@ http://www.brasington.org/arcade/tech/dk/
 
 
 
-Function Chip Type 2-Board location 4-Board location 
-Color Maps 256x4 prom 2E (CPU) 2K (CPU) 
-Color Maps 256x4 prom 2F (CPU) 2J (CPU) 
-Character Colors 256x4 prom 2N (VIDEO) 5F (VIDEO) 
-Fixed Characters 2716 3N (VIDEO) 5H (VIDEO) 
-Fixed Characters 2716 3P (VIDEO) 5K (VIDEO) 
-Code 0x3000-0x3fff 2532 5A (CPU) 5K (CPU) 
-Code 0x2000-0x2fff 2532 5B (CPU) 5H (CPU) 
-Code 0x1000-0x1Fff 2532 5C (CPU) 5G (CPU) 
-Code 0x0000-0x0Fff 2532 5E (CPU) 5F (CPU) 
-Not used - vacant     5L (CPU) 
-Moving Objects 2716 7C (VIDEO) 4M (CLK) 
-Moving Objects 2716 7D (VIDEO) 4N (CLK) 
-Moving Objects 2716 7E (VIDEO) 4R (CLK) 
-Moving Objects 2716 7F (VIDEO) 4S (CLK) 
-Digital Sound 2716 3F (CPU) 3J (SOU) 
-Digital Sound 2716 3H (CPU) 3I (SOU) 
-Z80 CPU  Z80 7C (CPU) 5C (CPU) 
-8035 MPU (music) 8035 7H (CPU) 3H (SOU) 
-CPU RAM 2114 3A (CPU) XX (CPU) 
-CPU RAM 2114 4A (CPU) XX (CPU) 
-CPU RAM 2114 3B (CPU) XX (CPU) 
-CPU RAM 2114 4B (CPU) XX (CPU) 
-CPU RAM 2114 3C (CPU) XX (CPU) 
-CPU RAM 2114 4C (CPU) XX (CPU) 
-Character RAM 2114 2P (VIDEO) XX (VIDEO) 
-Character RAM 2114 2R (VIDEO) XX (VIDEO) 
-Object RAM 2148 6P (VIDEO) XX (VIDEO) 
-Object RAM 2148 6R (VIDEO) XX (VIDEO) 
+Function Chip Type 2-Board location 4-Board location
+Color Maps 256x4 prom 2E (CPU) 2K (CPU)
+Color Maps 256x4 prom 2F (CPU) 2J (CPU)
+Character Colors 256x4 prom 2N (VIDEO) 5F (VIDEO)
+Fixed Characters 2716 3N (VIDEO) 5H (VIDEO)
+Fixed Characters 2716 3P (VIDEO) 5K (VIDEO)
+Code 0x3000-0x3fff 2532 5A (CPU) 5K (CPU)
+Code 0x2000-0x2fff 2532 5B (CPU) 5H (CPU)
+Code 0x1000-0x1Fff 2532 5C (CPU) 5G (CPU)
+Code 0x0000-0x0Fff 2532 5E (CPU) 5F (CPU)
+Not used - vacant     5L (CPU)
+Moving Objects 2716 7C (VIDEO) 4M (CLK)
+Moving Objects 2716 7D (VIDEO) 4N (CLK)
+Moving Objects 2716 7E (VIDEO) 4R (CLK)
+Moving Objects 2716 7F (VIDEO) 4S (CLK)
+Digital Sound 2716 3F (CPU) 3J (SOU)
+Digital Sound 2716 3H (CPU) 3I (SOU)
+Z80 CPU  Z80 7C (CPU) 5C (CPU)
+8035 MPU (music) 8035 7H (CPU) 3H (SOU)
+CPU RAM 2114 3A (CPU) XX (CPU)
+CPU RAM 2114 4A (CPU) XX (CPU)
+CPU RAM 2114 3B (CPU) XX (CPU)
+CPU RAM 2114 4B (CPU) XX (CPU)
+CPU RAM 2114 3C (CPU) XX (CPU)
+CPU RAM 2114 4C (CPU) XX (CPU)
+Character RAM 2114 2P (VIDEO) XX (VIDEO)
+Character RAM 2114 2R (VIDEO) XX (VIDEO)
+Object RAM 2148 6P (VIDEO) XX (VIDEO)
+Object RAM 2148 6R (VIDEO) XX (VIDEO)
 
 
 
