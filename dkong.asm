@@ -62,8 +62,9 @@ DSW1        equ     $7d80       ; DIP switches
 REG_MUSIC       equ $7c00
 
 ; Values written to REG_MUSIC
+; @TODO@ -- update code to use these
 MUS_NONE        equ $00
-MUS_INTRO       equ $01     ; Music when DK climbing ladder
+MUS_INTRO       equ $01     ; Music when DK climbs ladder
 MUS_HOWHIGH     equ $02     ; How high can you get?
 MUS_OUTATIME    equ $03     ; Running out of time
 MUS_HAMMER      equ $04     ; Hammer music
@@ -75,7 +76,7 @@ MUS_50M         equ $09     ; Music for pie factory
 MUS_75M         equ $0a     ; Music for elevator stage (or lack thereof)
 MUS_100M        equ $0b     ; Music for rivet stage
 MUS_ENDING2     equ $0c     ; Music after beating odd-numbered rivet levels
-MUS_RM_RIVET    equ $0d     ; "Rivet removed" sound effect
+MUS_RM_RIVET    equ $0d     ; Used when rivet removed
 MUS_DK_FALLS    equ $0e     ; Music when DK is about to fall in rivet stage
 MUS_DK_ROAR     equ $0f     ; Zerbert. Zerbert. Zerbert.
 
@@ -87,11 +88,11 @@ REG_SFX         equ $7d00   ; The first of 8 sound registers, but only the first
 SFX_WALK        equ 0
 SFX_JUMP        equ 1
 SFX_BOOM        equ 2       ; DK pounds ground; barrel hits Mario
-SFX_SPRING      equ 3
-SFX_FALL        equ 4
+SFX_SPRING      equ 3       ; (writes to i8035's P1)
+SFX_FALL        equ 4       ; (writes to i8035's P2)
 SFX_POINTS      equ 5       ; Got points, grabbed the hammer, etc.
 
-REG_SFX_DEATH   equ $7d80   ; plays when Mario dies
+REG_SFX_DEATH   equ $7d80   ; plays when Mario dies (triggers i8035's interrupt)
 
 ; Some other hardware registers
 REG_FLIPSCREEN      equ $7d82
@@ -131,13 +132,21 @@ SPRITE_RAM      equ $7000
 VIDEO_RAM       equ $7400
 
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
-; NOTE!
+; Notes on variables (READ THIS)
+;
 ; Donkey Kong's code is a little nutty and often depends on variables
 ; being stored in a certain way. For instance, if there's a variable at
 ; RAM+$a, it may do "DEC HL" to get at the variable at RAM+9, even
 ; if these variables are loosely related at best. If you're making a
 ; hack, we strongly suggest you keep the addresses of existing variables
 ; intact!
+;
+; For the same reason, it's hard to be 100% sure that every variable has
+; been documented. It's easy to miss a variable if it's never directly
+; referenced by address.
+;
+; Finally, be aware that, intentionally or not, some variables may have
+; been used for more than one purpose.
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
 ; Number of credits in BCD. Can't go over MAX_CREDITS.
@@ -149,7 +158,7 @@ NumCredits      equ RAM+1
 CoinCounter     equ RAM+2
 
 ; Usually 1. When a coin is inserted, it changes to 0 momentarily.
-; (Play in MAME and look in the debugger. This value will be 0 while the coin key is held down.)
+; (In MAME, this value will be 0 while the coin key is held down.)
 CoinSwitch      equ RAM+3
 
 ; 1 when in attract mode, 2 when credits in waiting for start, 3 when playing game
@@ -197,13 +206,16 @@ RngTimer2       equ RAM+$19
 ; Constantly counts down from FF to 00 and then FF to 00 again and again, once per frame
 FrameCounter    equ RAM+$1a
 
-; initial number of lives (set with dip switches)
+; Initial number of lives (set with dip switches)
 StartingLives   equ RAM+$20
 
 ; score needed for bonus life in thousands
 ExtraLifeThreshold  equ RAM+$21
 
 CoinsPerCredit  equ RAM+$22
+
+; Coins needed for a two-player game (always CoinsPerCredit*2)
+CoinsPer2Credits    equ RAM+$23
 
 ; Seems to be used for the same purpose as CoinsPerCredit (@TODO@ -- why is this a distinct variable?)
 CoinsPerCredit2 equ RAM+$24
@@ -213,22 +225,34 @@ CreditsPerCoin  equ RAM+$25
 ; 0 = cocktail, 1 = upright cabinet
 UprightCab      equ RAM+$26
 
-; Dunno what this does, but it changes while moving the cursor during high score entry
-Unk6030         equ RAM+$30
+; Timer counting delay before cursor can move. Keeps the cursor from moving too fast.
+; (@XXX@ -- verify this is this variable's function!!)
+HSCursorDelay   equ RAM+$30
 
 ; Toggles between 0 and 1 as the player's high score in the table blinks
 HSBlinkToggle   equ RAM+$31
 
-; Timer for blinking the player's high score in the table
-HSBlinkTimer    equ RAM+$33
+; Toggles HSBlinkToggle in table whenever it's zero
+HSBlinkTimer    equ RAM+$32
 
-; #6035 = coded high score entry digit selected 0 to #1D
+; Time left to register name in seconds
+HSRegiTime      equ RAM+$33
 
-; #6036,7 = address of screen RAM for current initial being entered
+; Decrements HSRegiTime when zero
+HSTimer         equ RAM+$34
 
-; #6038 = ???
+; Which character the cursor is highlighting when entering high score
+HSCursorPos     equ RAM+$35
 
-; #6040 = number of lives remaining ... (see #6228)
+; Address of screen RAM for current initial being entered (16-bit variable)
+HSInitialPos    equ RAM+$36
+
+; Something to do with high score entry.
+; Changing this value to FF in the debugger on high score screen causes the
+; game to prompt for another name after entering the first.
+Unk6038         equ RAM+$38
+
+; #6040 = number of lives remaining for player 1
 
 ; #6041 =
 
@@ -329,7 +353,7 @@ HSBlinkTimer    equ RAM+$33
 
 ; #6227 is screen #:  1-girders, 2-pie, 3-elevator, 4-rivets
 
-; #6228 is the number of lives remaining (see #6040)
+; #6228 is the number of lives remaining for current player
 
 ; #6229  is the level #
 
@@ -1177,7 +1201,7 @@ FF = Extra Mario Icon
 012E  1C        INC     E               ; next DE
 012F  10FC      DJNZ    #012D           ; Next B
 
-0131  32807D    LD      (#7D80),A       ; clear the digital sound trigger (death)
+0131  32807D    LD      (REG_SFX_DEATH),A   ; clear the digital sound trigger (death)
 0134  32007C    LD      (REG_MUSIC),A   ; clear the sound output
 0137  C9        RET                     ; return
 
@@ -1192,7 +1216,7 @@ FF = Extra Mario Icon
 ; refreshes the sprites ?
 
 0141  AF        XOR     A               ; A := 0
-0142  32857D    LD      (#7D85),A       ; store into P8257 DRQ DMA Request
+0142  32857D    LD      (REG_DMA),A     ; store into P8257 DRQ DMA Request
 0145  7E        LD      A,(HL)          ; load table data (#53)
 0146  320878    LD      (#7808),A       ; store into P8257 control register
 0149  23        INC     HL              ; next table entry
@@ -1220,9 +1244,9 @@ FF = Extra Mario Icon
 016D  7E        LD      A,(HL)          ; load table data (#81)
 016E  320378    LD      (#7803),A       ; store into P8257 control register
 0171  3E01      LD      A,#01           ; A := 1
-0173  32857D    LD      (#7D85),A       ; store into P8257 DRQ DMA Request
+0173  32857D    LD      (REG_DMA),A     ; store into P8257 DRQ DMA Request
 0176  AF        XOR     A               ; A := 0
-0177  32857D    LD      (#7D85),A       ; store into P8257 DRQ DMA Request
+0177  32857D    LD      (REG_DMA),A     ; store into P8257 DRQ DMA Request
 017A  C9        RET                     ; return
 
 ; called from #00BC
@@ -1356,8 +1380,8 @@ FF = Extra Mario Icon
 0246  5F        LD      E,A             ; E := 4
 
 0247  72        LD      (HL),D          ; store D into CoinsPerCredit
-0248  23        INC     HL              ; HL := #6023 (unused???)
-0249  73        LD      (HL),E          ; store E into #6023 (unused???)
+0248  23        INC     HL              ; HL := CoinsPer2Credits
+0249  73        LD      (HL),E          ; store E into CoinsPer2Credits
 024A  23        INC     HL              ; HL := CoinsPerCredit2
 024B  70        LD      (HL),B          ; store B into CoinsPerCredit2
 024C  23        INC     HL              ; HL := CreditsPerCoin
@@ -1437,7 +1461,7 @@ Init:
 029E  32B060    LD      (#60B0),A       ; store into timer
 02A1  32B160    LD      (#60B1),A       ; store into timer
 02A4  AF        XOR     A               ; A := 0
-02A5  32837D    LD      (#7D83),A       ; Clear dkong_spritebank_w  /* 2 PSL Signal */
+02A5  32837D    LD      (REG_SPRITE),A  ; Clear dkong_spritebank_w  /* 2 PSL Signal */
 
 02A8  32867D    LD      (REG_PALETTE_A),A       ; clear palette bank selector
 02AB  32877D    LD      (REG_PALETTE_B),A       ; clear palette bank selector
@@ -2399,7 +2423,7 @@ Init:
 079E  FE01      CP      #01             ; 2 player game?
 07A0  CCEE09    CALL    Z,#09EE         ; yes, skip ahead to handle
 
-07A3  ED5B2260  LD      DE,(CoinsPerCredit)      ; else load DE with RAM location of coins per credit
+07A3  ED5B2260  LD      DE,(CoinsPerCredit)      ; D := CoinsPer2Credits; E := CoinsPerCredit
 07A7  216C75    LD      HL,#756C        ; load HL with screen RAM location
 07AA  CDAD07    CALL    #07AD           ; run this sub below twice
 
@@ -4584,20 +4608,20 @@ Init:
 1491  32867D    LD      (REG_PALETTE_A),A       ; set palette bank selector
 1494  32877D    LD      (REG_PALETTE_B),A       ; set palette bank selector
 1497  3601      LD      (HL),#01        ; set timer to 1
-1499  213060    LD      HL,Unk6030      ; load HL with Unk6030
+1499  213060    LD      HL,HSCursorDelay      ; load HL with HSCursorDelay
 149C  360A      LD      (HL),#0A
 149E  23        INC     HL              ; HL := HSBlinkToggle
 149F  3600      LD      (HL),#00
-14A1  23        INC     HL              ; HL := #6032
+14A1  23        INC     HL              ; HL := HSBlinkTimer
 14A2  3610      LD      (HL),#10
-14A4  23        INC     HL              ; HL := HSBlinkTimer
+14A4  23        INC     HL              ; HL := HSRegiTime
 14A5  361E      LD      (HL),#1E
-14A7  23        INC     HL              ; HL := #6034
+14A7  23        INC     HL              ; HL := HSTimer
 14A8  363E      LD      (HL),#3E        ; set outer loop timer
-14AA  23        INC     HL              ; HL := #6035
+14AA  23        INC     HL              ; HL := HSCursorPos
 14AB  3600      LD      (HL),#00        ; set high score digit selected
 14AD  21E875    LD      HL,#75E8        ; load HL with screen position for first player initial
-14B0  223660    LD      (#6036),HL      ; save into this indicator
+14B0  223660    LD      (HSInitialPos),HL      ; save into this indicator
 14B3  211C61    LD      HL,#611C        ; load HL with address of high score indicator
 14B6  3A0E60    LD      A,(PlayerTurnB)       ; load A with current player number
 14B9  07        RLCA                    ; rotate left
@@ -4613,21 +4637,21 @@ Init:
 14C6  19        ADD     HL,DE           ; add offset for next HL
 14C7  10F8      DJNZ    #14C1           ; Next B
 
-14C9  223860    LD      (#6038),HL      ; store HL into this location ???
+14C9  223860    LD      (Unk6038),HL      ; store HL into Unk6038
 14CC  11F3FF    LD      DE,#FFF3        ; load DE with offset of -#13
 14CF  19        ADD     HL,DE           ; add offset
 14D0  223A60    LD      (#603A),HL      ; store result into ???
 14D3  0600      LD      B,#00           ; B := 0
-14D5  3A3560    LD      A,(#6035)       ; load A with high score entry digit selected
+14D5  3A3560    LD      A,(HSCursorPos)       ; load A with high score entry digit selected
 14D8  4F        LD      C,A             ; copy to C
 14D9  CDFA15    CALL    #15FA           ; ???
 
-14DC  213460    LD      HL,#6034        ; load HL with outer loop timer
+14DC  213460    LD      HL,HSTimer      ; load HL with outer loop timer
 14DF  35        DEC     (HL)            ; count down timer.  at zero?
 14E0  C2FC14    JP      NZ,#14FC        ; no, skip ahead
 
 14E3  363E      LD      (HL),#3E        ; reset outer loop timer
-14E5  2B        DEC     HL              ; HL := HSBlinkTimer
+14E5  2B        DEC     HL              ; HL := HSRegiTime
 14E6  35        DEC     (HL)            ; decrease.  at zero?
 14E7  CAC615    JP      Z,#15C6         ; yes, skip ahead to handle
 
@@ -4643,7 +4667,7 @@ Init:
 14F8  78        LD      A,B             ; A := B = 10's of time left
 14F9  327275    LD      (#7572),A       ; draw digit to screen
 
-14FC  213060    LD      HL,Unk6030      ; load HL with Unk6030
+14FC  213060    LD      HL,HSCursorDelay      ; load HL with HSCursorDelay
 14FF  46        LD      B,(HL)          ; load B with the value
 1500  360A      LD      (HL),#0A        ; store #A into it
 1502  3A1060    LD      A,(InputState)       ; load A with input
@@ -4654,7 +4678,7 @@ Init:
 150C  C21415    JP      NZ,#1514        ; if direction, skip next 3 steps
 
 150F  3C        INC     A               ; else increase A
-1510  77        LD      (HL),A          ; store into Unk6030
+1510  77        LD      (HL),A          ; store into HSCursorDelay
 1511  C38A15    JP      #158A           ; skip ahead
 
 ; left or right pressed while in high score entry
@@ -4669,20 +4693,20 @@ Init:
 151D  CB4F      BIT     1,A             ; is direction == left ?
 151F  C23915    JP      NZ,#1539        ; yes, skip ahead
 
-1522  3A3560    LD      A,(#6035)       ; load A with high score entry digit selected
+1522  3A3560    LD      A,(HSCursorPos)       ; load A with high score entry digit selected
 1525  3C        INC     A               ; increase
 1526  FE1E      CP      #1E             ; == #1E ?  (have we gone past END ?)
 1528  C22D15    JP      NZ,#152D        ; no, skip next step
 
 152B  3E00      LD      A,#00           ; A := 0 [why this way and not XOR A ?] - reset this counter to "A" in the table
 
-152D  323560    LD      (#6035),A       ; store into high score entry digit selected
+152D  323560    LD      (HSCursorPos),A       ; store into high score entry digit selected
 1530  4F        LD      C,A             ; C := A
 1531  0600      LD      B,#00           ; B := 0
 1533  CDFA15    CALL    #15FA           ; ???
 1536  C38A15    JP      #158A           ; skip ahead
 
-1539  3A3560    LD      A,(#6035)       ; load A with high score entry digit selected
+1539  3A3560    LD      A,(HSCursorPos)       ; load A with high score entry digit selected
 153C  D601      SUB     #01             ; decrease [why written this way?  DEC A is standard...]
 153E  F22D15    JP      P,#152D         ; if sign positive, loop again
 
@@ -4691,14 +4715,14 @@ Init:
 
 ; jump pressed in high score entry
 
-1546  3A3560    LD      A,(#6035)       ; load A with high score entry digit selected
+1546  3A3560    LD      A,(HSCursorPos)       ; load A with high score entry digit selected
 1549  FE1C      CP      #1C             ; == #1C ? = code for backspace ?
 154B  CA6D15    JP      Z,#156D         ; yes, skip ahead to handle
 
 154E  FE1D      CP      #1D             ; == #1D ? = code for END
 1550  CAC615    JP      Z,#15C6         ; yes, skip ahead to hanlde
 
-1553  2A3660    LD      HL,(#6036)      ; else load HL with VRAM address of the initial being entered
+1553  2A3660    LD      HL,(HSInitialPos)      ; else load HL with VRAM address of the initial being entered
 1556  018875    LD      BC,#7588        ; load BC with screen address
 1559  A7        AND     A               ; clear carry flag
 155A  ED42      SBC     HL,BC           ; subtract.  equal?
@@ -4710,12 +4734,12 @@ Init:
 1563  01E0FF    LD      BC,#FFE0        ; load BC with offset for next column
 1566  09        ADD     HL,BC           ; set HL to next column
 
-1567  223660    LD      (#6036),HL      ; store HL back into VRAM address of the initial being entered
+1567  223660    LD      (HSInitialPos),HL      ; store HL back into VRAM address of the initial being entered
 156A  C38A15    JP      #158A           ; skip ahead
 
 ; backspace selected in high score entry
 
-156D  2A3660    LD      HL,(#6036)      ; else load HL with VRAM address of the initial being entered
+156D  2A3660    LD      HL,(HSInitialPos)      ; else load HL with VRAM address of the initial being entered
 1570  012000    LD      BC,#0020        ; load offset of #20
 1573  09        ADD     HL,BC           ; add offset
 1574  A7        AND     A               ; clear carry flag
@@ -4734,10 +4758,11 @@ Init:
 
 ; jump here from #156A and #155C and #1536 and #151A and #1511
 
-158A  213260    LD      HL,#6032        ; load HL with ???
+158A  213260    LD      HL,HSBlinkTimer ; load HL with HSBlinkTimer
 158D  35        DEC     (HL)            ; decrease.  at zero ?
-158E  C2F915    JP      NZ,#15F9        ; yes, jump to RET. [RET NZ would be faster and more compact]
+158E  C2F915    JP      NZ,#15F9        ; no, jump to RET. [RET NZ would be faster and more compact]
 
+; Blink the high score in high score table
 1591  3A3160    LD      A,(HSBlinkToggle)
 1594  A7        AND     A               ; Is HSBlinkToggle zero?
 1595  C2B815    JP      NZ,#15B8        ; no, skip ahead
@@ -4746,19 +4771,19 @@ Init:
 159A  323160    LD      (HSBlinkToggle),A   ; store into HSBlinkToggle
 159D  11BF01    LD      DE,#01BF
 
-15A0  FD2A3860  LD      IY,(#6038)      ; load IY with ???
+15A0  FD2A3860  LD      IY,(Unk6038)      ; load IY with Unk6038
 15A4  FD6E04    LD      L,(IY+#04)
 15A7  FD6605    LD      H,(IY+#05)
 15AA  E5        PUSH    HL
 15AB  DDE1      POP     IX              ; load IX with HL
 15AD  CD7C05    CALL    #057C           ; ???
 15B0  3E10      LD      A,#10           ; A := #10
-15B2  323260    LD      (#6032),A       ; store into ???
-15B5  C3F915    JP      #15F9           ; jump to RET [why?  RET would be faster and more compact]
+15B2  323260    LD      (HSBlinkTimer),A    ; store into HSBlinkTimer
+15B5  C3F915    JP      #15F9           ; jump to RET [RET would be faster and more compact]
 
 15B8  AF        XOR     A               ; A := 0
-15B9  323160    LD      (HSBlinkToggle),A       ; store into ???
-15BC  ED5B3860  LD      DE,(#6038)
+15B9  323160    LD      (HSBlinkToggle),A       ; store into HSBlinkToggle
+15BC  ED5B3860  LD      DE,(Unk6038)
 15C0  13        INC     DE
 15C1  13        INC     DE
 15C2  13        INC     DE
@@ -4767,7 +4792,7 @@ Init:
 ; arrive here from #14E7
 ; high score entry complete ???
 
-15C6  ED5B3860  LD      DE,(#6038)      ; load DE with address of high score entry indicator
+15C6  ED5B3860  LD      DE,(Unk6038)      ; load DE with address of high score entry indicator
 15CA  AF        XOR     A               ; A := 0
 15CB  12        LD      (DE),A          ; store.  this clears the high score indicator
 15CC  210960    LD      HL,WaitTimerMSB ; load HL with timer
