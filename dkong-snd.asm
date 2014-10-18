@@ -1167,7 +1167,7 @@
 ;
 ; In addition, all bits except 0 and 2 are set with "rivet removed" ditty.
 ; If all bits are 0, no music is played
-500: 00      db $00             ; %00000000 - song 0: no music
+500: 00      db $00             ; %00000000  0: no music
 501: 20      db $20             ; %00100000  1: Music when DK climbs ladder
 502: 10      db $10             ; %00010000  2: How high can you get?
 503: 05      db $05             ; %00000101  3: Running out of time
