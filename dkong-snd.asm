@@ -1162,58 +1162,27 @@
 ; Bits for each song:
 ;   Bit 7: rivet removed
 ;   Bit 6: hammer hit
-;   Bit 5: ??? (DK climbs ladder music)
-;   Bit 4: various intermission tunes (How high can you get?, etc.)
+;   Bit 5: use playlist table at $520 and play using no envelopes
+;   Bit 4: use playlist table at $510 and use volume envelopes
 ;
 ; In addition, all bits except 0 and 2 are set with "rivet removed" ditty.
 ; If all bits are 0, no music is played
-; 0: No music
-500: 00      db $00             ; %00000000
-
-; 1: Music when DK climbs ladder
-501: 20      db $20             ; %00100000
-
-; 2: How high can you get?
-502: 10      db $10             ; %00010000
-
-; 3: Running out of time
-503: 05      db $05             ; %00000101
-
-; 4: Hammer music
-504: 06      db $06             ; %00000110
-
-; 5: Music after beating even-numbered rivet levels
-505: 12      db $12             ; %00010010
-
-; 6: Hammer hit
-506: 40      db $40             ; %01000000
-
-; 7: Music for completing a non-rivet stage
-507: 16      db $16             ; %00010110
-
-; 8: Music for barrel stage
-508: 01      db $01             ; %00000001
-
-; 9: Music for pie factory
-509: 02      db $02             ; %00000010
-
-; A: Music (or lack thereof) for elevator stage
-50A: 00      db $00             ; %00000000
-
-; B: Music for rivet stage
-50B: 04      db $04             ; %00000100
-
-; C: Music after beating odd-numbered rivet levels
-50C: 14      db $14             ; %00010100
-
-; D: Used when rivet removed
-50D: FA      db $fa             ; %11111010
-
-; E: Music when DK is about to fall in rivet stage
-50E: 1E      db $1e             ; %00011110
-
-; F: DK roars
-50F: 2D      db $2d             ; %00101101
+500: 00      db $00             ; %00000000 - song 0: no music
+501: 20      db $20             ; %00100000  1: Music when DK climbs ladder
+502: 10      db $10             ; %00010000  2: How high can you get?
+503: 05      db $05             ; %00000101  3: Running out of time
+504: 06      db $06             ; %00000110  4: Hammer music
+505: 12      db $12             ; %00010010  5: Music after beating even-numbered rivet levels
+506: 40      db $40             ; %01000000  6: Hammer hit
+507: 16      db $16             ; %00010110  7: Music for completing a non-rivet stage
+508: 01      db $01             ; %00000001  8: Music for barrel stage
+509: 02      db $02             ; %00000010  9: Music for pie factory
+50A: 00      db $00             ; %00000000  A: Music (or lack thereof) for elevator stage
+50B: 04      db $04             ; %00000100  B: Music for rivet stage
+50C: 14      db $14             ; %00010100  C: Music after beating odd-numbered rivet levels
+50D: FA      db $fa             ; %11111010  D: Used when rivet removed
+50E: 1E      db $1e             ; %00011110  E: Music when DK is about to fall in rivet stage
+50F: 2D      db $2d             ; %00101101  F: DK roars
 
 ; Playlist table for $57d songs 
 ; -----------------------------
@@ -1320,6 +1289,7 @@
 56E: D2 E5   jb6  $5E5          ; hammer hit
 
 ; If we get here, it must be stage theme, hammer theme, or running out of time theme
+; In other words, background music during gameplay
 570: 8A 80   orl  p2,#$80
 572: A8      mov  r0,a
 573: D4 1A   call $61A
