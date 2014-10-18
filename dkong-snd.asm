@@ -1075,7 +1075,7 @@
 ;   Bit 5: use playlist table at $520 and play using no envelopes
 ;   Bit 4: use playlist table at $510 and use volume envelopes
 ;
-; Bits 4 and 5 aren't mere flags. When they are set (and bits 6 and 7 are not), the value is a bank 5 pointer straight into the playlist table.
+; Bits 4 and 5 aren't mere flags. When they are set (and bits 6 and 7 are not), the value is a page 5 pointer straight into the playlist table.
 ;
 ; In addition, all bits except 0 and 2 are set with "rivet removed" ditty.
 ; If all bits are 0, no music is played
