@@ -185,14 +185,14 @@
 055: B8 20   mov  r0,#$20
 057: B0 00   mov  @r0,#$00
 
-; Clear r6 and r7 in rb1
+; Clear channel B frequency
 059: D5      sel  rb1
 05A: 27      clr  a
 05B: AE      mov  r6,a
 05C: AF      mov  r7,a
 05D: C5      sel  rb0
 
-; ?
+; ???
 05E: 8A 80   orl  p2,#$80
 
 ; signal end of interrupt?
@@ -200,24 +200,25 @@
 
 ; start of main loop
 062: 26 74   jnt0 $074          ; if T0, play "scored points" jingle
-064: A5      clr  f1
-065: 0A      in   a,p2
+064: A5      clr  f1            ; ???
+065: 0A      in   a,p2          ; Is bit 5 of p2 clear?
 066: 37      cpl  a
-067: B2 A8   jb5  $0A8          ; play spring noise
+067: B2 A8   jb5  $0A8          ; yes; play spring noise
 
-; Clear r1, r6, and r7
+; Clear channel A frequency
 069: 27      clr  a
 06A: AE      mov  r6,a
 06B: AF      mov  r7,a
+
+; Clear r1 (why?)
 06C: A9      mov  r1,a
 
-06D: B4 35   call $535
-06F: 14 73   call $073          ; clear interrupt flag (?)
+06D: B4 35   call $535          ; check for music to play and play any
+06F: 14 73   call $073          ; signal any interrupts as handled
 071: 04 62   jmp  $062          ; loop back
 
 
-; This routine just signals end of interrupts, I think.
-; @TODO@ -- verify purpose
+; This "routine" just signals any interrupts as handled
 073: 93      retr
 
 
@@ -331,13 +332,14 @@
 100: B8 03   mov  r0,#$03       ; call $123 three times
 102: 34 23   call $123
 104: E8 02   djnz r0,$102
-106: B8 03   mov  r0,#$03       ; call $10D three times
+106: B8 03   mov  r0,#$03       ; call $10D (silence) three times
 108: 34 0D   call $10D
 10A: E8 08   djnz r0,$108
 10C: 83      ret
 
 ; called from routine at $100
-10D: 27      clr  a             ; clear r6, r7, r6', r7'
+; this appears to play silence for a short time
+10D: 27      clr  a             ; silence channels A and B
 10E: AE      mov  r6,a
 10F: AF      mov  r7,a
 110: D5      sel  rb1
@@ -383,6 +385,8 @@
 13C: D5      sel  rb1
 13D: A4 35   jmp  $535
 
+; @TODO@ - I'm not sure what the point of this routine is.
+; Dummy it out and the music plays in a lower key, but is otherwise fine.
 13F: FE      mov  a,r6
 140: 6F      add  a,r7
 141: E6 44   jnc  $144
@@ -411,9 +415,9 @@
 15C: C6 4B   jz   $14B
 15E: B9 03   mov  r1,#$03       ; loop three times
 160: 8A 80   orl  p2,#$80
-162: 34 3F   call $13F          ; load channel frequency
+162: 34 3F   call $13F          ; do something with channel A (@TODO@)
 164: D5      sel  rb1           ; set channel B
-165: 34 3F   call $13F          ; load channel frequency
+165: 34 3F   call $13F          ; do something with channel B (@TODO@)
 167: D4 7B   call $67B
 169: E9 62   djnz r1,$162       ; loop
 16B: B9 04   mov  r1,#$04       ; call $67b four times
@@ -587,6 +591,7 @@
 25F: C5      sel  rb0
 260: 83      ret
 
+; junk
 261: FF
 262: FF
 263: FF
@@ -1165,10 +1170,10 @@
 ; The song has not changed; continue current song
 542: B6 BD   jf0  $5BD          ; if F0, continue fall noise
 544: 46 BA   jnt1 $5BA          ; if T1, start fall noise
-546: F0      mov  a,@r0
+546: F0      mov  a,@r0         ; get the song ID again
 547: A3      movp a,@a
-548: C6 5D   jz   $55D          ; if zero, skip to $67B
-54A: F2 5F   jb7  $55F          ; clear triangle frequency if bit 7 set
+548: C6 5D   jz   $55D          ; if zero (silence), go to $67B
+54A: F2 5F   jb7  $55F          ; jump if "rivet removed"
 54C: 34 3F   call $13F
 54E: E9 5D   djnz r1,$55D
 550: FF      mov  a,r7
@@ -1178,12 +1183,12 @@
 556: FA      mov  a,r2
 557: 03 F8   add  a,#$F8
 559: A9      mov  r1,a
-55A: 27      clr  a             ; clear triangle frequency
+55A: 27      clr  a             ; clear channel B frequency
 55B: AE      mov  r6,a
 55C: AF      mov  r7,a
 55D: C4 7B   jmp  $67B
 
-55F: 27      clr  a             ; clear triangle frequency
+55F: 27      clr  a             ; clear channel B frequency
 560: AE      mov  r6,a
 561: AF      mov  r7,a
 562: C4 7B   jmp  $67B
