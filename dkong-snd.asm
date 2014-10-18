@@ -336,14 +336,16 @@
 10A: E8 08   djnz r0,$108
 10C: 83      ret
 
-; called from $100
-10D: 27      clr  a
+; called from routine at $100
+10D: 27      clr  a             ; clear r6, r7, r6', r7'
 10E: AE      mov  r6,a
 10F: AF      mov  r7,a
 110: D5      sel  rb1
 111: AE      mov  r6,a
 112: AF      mov  r7,a
 113: C4 7B   jmp  $67B
+
+; called from spring routine
 115: FB      mov  a,r3
 116: 47      swap a
 117: E7      rl   a
@@ -356,7 +358,7 @@
 120: AE      mov  r6,a
 121: A4 35   jmp  $535
 
-; called from $100
+; called from routine at $100
 123: FB      mov  a,r3
 124: 77      rr   a
 125: 77      rr   a
@@ -548,62 +550,13 @@
 1FE: FF
 1FF: FF
 
-; Looks like this is all data until $240
-200: 00      nop
-201: 03 06   add  a,#$06
-203: 09      in   a,p1
-204: 0C      movd a,p4
-205: 0F      movd a,p7
-206: 12 15   jb0  $215
-208: 18      inc  r0
-209: 1B      inc  r3
-20A: 1E      inc  r6
-20B: 21      xch  a,@r1
-20C: 24 27   jmp  $127
-20E: 2A      xch  a,r2
-20F: 2D      xch  a,r5
-210: 30      xchd a,@r0
-211: 33      illegal
-212: 36 39   jt0  $239
-214: 3C      movd p4,a
-215: 3F      movd p7,a
-216: 42      mov  a,t
-217: 45      strt cnt
-218: 48      orl  a,r0
-219: 4B      orl  a,r3
-21A: 4E      orl  a,r6
-21B: 51      anl  a,@r1
-21C: 54 57   call $257
-21E: 5A      anl  a,r2
-21F: 5D      anl  a,r5
-220: 60      add  a,@r0
-221: 5D      anl  a,r5
-222: 5A      anl  a,r2
-223: 57      da   a
-224: 54 51   call $251
-226: 4E      orl  a,r6
-227: 4B      orl  a,r3
-228: 48      orl  a,r0
-229: 45      strt cnt
-22A: 42      mov  a,t
-22B: 3F      movd p7,a
-22C: 3C      movd p4,a
-22D: 39      outl p1,a
-22E: 36 33   jt0  $233
-230: 30      xchd a,@r0
-231: 2D      xch  a,r5
-232: 2A      xch  a,r2
-233: 27      clr  a
-234: 24 21   jmp  $121
-236: 1E      inc  r6
-237: 1B      inc  r3
-238: 18      inc  r0
-239: 15      dis  i
-23A: 12 0F   jb0  $20F
-23C: 0C      movd a,p4
-23D: 09      in   a,p1
-23E: 06      illegal
-23F: 03      db   $03
+; Wavetable used by routine at ???. Same as the wavetable at $6c0.
+; Triangle waveform. Every entry increases by 3 until it peaks at $60, then decreases by 3 until it hits $03.
+; @TODO@ -- what uses this?
+200: 00 03 06 09 0C 0F 12 15 18 1B 1E 21 24 27 2A 2D
+210: 30 33 36 39 3C 3F 42 45 48 4B 4E 51 54 57 5A 5D
+220: 60 5D 5A 57 54 51 4E 4B 48 45 42 3F 3C 39 36 33
+230: 30 2D 2A 27 24 21 1E 1B 18 15 12 0F 0C 09 06 03
 
 240: FC      mov  a,r4
 241: 6E      add  a,r6
@@ -731,6 +684,9 @@
 2BE: FF
 2BF: FF
 
+; Triangle wave, louder than others
+; Triangle waveform. Every entry increases by 5 until it peaks at $9F, then decreases by 5 until it hits $05.
+; @TODO@ -- what uses this?
 2C0: 00      nop
 2C1: 05      en   i
 2C2: 0A      in   a,p2
@@ -783,6 +739,7 @@
 2FC: 14 0F   call $00F
 2FE: 0A      in   a,p2
 2FF: 05      en   i
+
 300: 00      nop
 301: 2A      xch  a,r2
 302: 80      movx a,@r0
@@ -1145,8 +1102,12 @@
 4F5: FF
 4F6: FF
 4F7: FF
+
+; Fetch from page 4
 4F8: A3      movp a,@a
 4F9: 83      ret
+
+; junk
 4FA: FF
 4FB: FF
 4FC: FF
@@ -1165,9 +1126,11 @@
 ;   Bit 5: use playlist table at $520 and play using no envelopes
 ;   Bit 4: use playlist table at $510 and use volume envelopes
 ;
+; Bits 4 and 5 aren't mere flags. When they are set (and bits 6 and 7 are not), the value is a bank 5 pointer straight into the playlist table.
+;
 ; In addition, all bits except 0 and 2 are set with "rivet removed" ditty.
 ; If all bits are 0, no music is played
-500: 00      db $00             ; %00000000  0: no music
+500: 00      db $00             ; %00000000  0: No music
 501: 20      db $20             ; %00100000  1: Music when DK climbs ladder
 502: 10      db $10             ; %00010000  2: How high can you get?
 503: 05      db $05             ; %00000101  3: Running out of time
@@ -1458,7 +1421,7 @@
 
 634: FB      mov  a,r3
 635: 1B      inc  r3
-636: 84 F8   jmp  $4F8
+636: 84 F8   jmp  $4F8          ; fetch from page 4 and return
 638: D4 27   call $627
 63A: C6 5C   jz   $65C
 63C: F2 46   jb7  $646
@@ -1514,16 +1477,22 @@
 678: 96 6D   jnz  $66D
 67A: 83      ret
 
-67B: 42      mov  a,t
-67C: 03 80   add  a,#$80
+; This has to do with playing sound waves
+; RB is 1
+67B: 42      mov  a,t           ; T will be very low here. So this reduces the time before timer fires
+67C: 03 80   add  a,#$80        ; @TODO@ -- but why $80?
 67E: 62      mov  t,a
-67F: 76 A2   jf1  $6A2
+67F: 76 A2   jf1  $6A2          ; skip to end if ??? (a rare condition, apparently)
+
+; start of loop
+; add r6' and r7' to r4' and r5' (this is a 16-bit add)
 681: FC      mov  a,r4
 682: 6E      add  a,r6
 683: AC      mov  r4,a
 684: FD      mov  a,r5
 685: 7F      addc a,r7
 686: AD      mov  r5,a
+
 687: 77      rr   a
 688: 77      rr   a
 689: 43 C0   orl  a,#$C0
@@ -1542,14 +1511,19 @@
 698: A3      movp a,@a
 699: D5      sel  rb1
 69A: 68      add  a,r0
-69B: 39      outl p1,a
-69C: 16 A0   jtf  $6A0
-69E: C4 81   jmp  $681
+69B: 39      outl p1,a          ; output to DAC
+69C: 16 A0   jtf  $6A0          ; return when timer fires
+69E: C4 81   jmp  $681          ; loop back
 6A0: C5      sel  rb0
 6A1: 83      ret
 6A2: 44 40   jmp  $240
+
+; Fetch from page 6
+; Doesn't appear to be used
 6A4: A3      movp a,@a
 6A5: 83      ret
+
+; junk
 6A6: FF      mov  a,r7
 6A7: FF      mov  a,r7
 6A8: FF      mov  a,r7
@@ -1576,64 +1550,22 @@
 6BD: FF      mov  a,r7
 6BE: FF      mov  a,r7
 6BF: FF      mov  a,r7
-6C0: 00      nop
-6C1: 03 06   add  a,#$06
-6C3: 09      in   a,p1
-6C4: 0C      movd a,p4
-6C5: 0F      movd a,p7
-6C6: 12 15   jb0  $615
-6C8: 18      inc  r0
-6C9: 1B      inc  r3
-6CA: 1E      inc  r6
-6CB: 21      xch  a,@r1
-6CC: 24 27   jmp  $127
-6CE: 2A      xch  a,r2
-6CF: 2D      xch  a,r5
-6D0: 30      xchd a,@r0
-6D1: 33      illegal
-6D2: 36 39   jt0  $639
-6D4: 3C      movd p4,a
-6D5: 3F      movd p7,a
-6D6: 42      mov  a,t
-6D7: 45      strt cnt
-6D8: 48      orl  a,r0
-6D9: 4B      orl  a,r3
-6DA: 4E      orl  a,r6
-6DB: 51      anl  a,@r1
-6DC: 54 57   call $257
-6DE: 5A      anl  a,r2
-6DF: 5D      anl  a,r5
-6E0: 60      add  a,@r0
-6E1: 5D      anl  a,r5
-6E2: 5A      anl  a,r2
-6E3: 57      da   a
-6E4: 54 51   call $251
-6E6: 4E      orl  a,r6
-6E7: 4B      orl  a,r3
-6E8: 48      orl  a,r0
-6E9: 45      strt cnt
-6EA: 42      mov  a,t
-6EB: 3F      movd p7,a
-6EC: 3C      movd p4,a
-6ED: 39      outl p1,a
-6EE: 36 33   jt0  $633
-6F0: 30      xchd a,@r0
-6F1: 2D      xch  a,r5
-6F2: 2A      xch  a,r2
-6F3: 27      clr  a
-6F4: 24 21   jmp  $121
-6F6: 1E      inc  r6
-6F7: 1B      inc  r3
-6F8: 18      inc  r0
-6F9: 15      dis  i
-6FA: 12 0F   jb0  $60F
-6FC: 0C      movd a,p4
-6FD: 09      in   a,p1
-6FE: 06      illegal
-6FF: 03 02   add  a,#$02
-701: 04 06   jmp  $006
-703: 0C      movd a,p4
-704: 14 FF   call $0FF
+
+; Wavetable used by routine at $67B. Same as the wavetable at $200.
+; Triangle waveform. Every entry increases by 3 until it peaks at $60, then decreases by 3 until it hits $03.
+6C0: 00 03 06 09 0C 0F 12 15 18 1B 1E 21 24 27 2A 2D
+6D0: 30 33 36 39 3C 3F 42 45 48 4B 4E 51 54 57 5A 5D
+6E0: 60 5D 5A 57 54 51 4E 4B 48 45 42 3F 3C 39 36 33
+6F0: 30 2D 2A 27 24 21 1E 1B 18 15 12 0F 0C 09 06 03
+
+700: 02      db $02
+701: 04      db $04
+702: 06      db $06
+703: 0C      db $0c
+704: 14      db $14
+705: FF      db $ff
+
+; called from routines at $585 and $5b6
 706: A8      mov  r0,a
 707: A3      movp a,@a
 708: 28      xch  a,r0
