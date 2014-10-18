@@ -550,14 +550,13 @@
 1FE: FF
 1FF: FF
 
-; Wavetable used by routine at ???. Same as the wavetable at $6c0.
-; Triangle waveform. Every entry increases by 3 until it peaks at $60, then decreases by 3 until it hits $03.
-; @TODO@ -- what uses this?
+; Triangle wavetable used by routine at $240
 200: 00 03 06 09 0C 0F 12 15 18 1B 1E 21 24 27 2A 2D
 210: 30 33 36 39 3C 3F 42 45 48 4B 4E 51 54 57 5A 5D
 220: 60 5D 5A 57 54 51 4E 4B 48 45 42 3F 3C 39 36 33
 230: 30 2D 2A 27 24 21 1E 1B 18 15 12 0F 0C 09 06 03
 
+; This routine has to do with playing the wavetables found elsewhere on this page
 240: FC      mov  a,r4
 241: 6E      add  a,r6
 242: AC      mov  r4,a
@@ -566,7 +565,7 @@
 245: AD      mov  r5,a
 246: 77      rr   a
 247: 77      rr   a
-248: 53 3F   anl  a,#$3F
+248: 53 3F   anl  a,#$3F        ; use quieter triangle wavetable
 24A: A3      movp a,@a
 24B: A8      mov  r0,a
 24C: C5      sel  rb0
@@ -578,11 +577,11 @@
 252: AD      mov  r5,a
 253: 77      rr   a
 254: 77      rr   a
-255: 43 C0   orl  a,#$C0
+255: 43 C0   orl  a,#$C0        ; use louder triangle wavetable
 257: A3      movp a,@a
 258: D5      sel  rb1
 259: 68      add  a,r0
-25A: 39      outl p1,a
+25A: 39      outl p1,a          ; output to DAC
 25B: 16 5F   jtf  $25F
 25D: 44 40   jmp  $240
 25F: C5      sel  rb0
@@ -684,61 +683,11 @@
 2BE: FF
 2BF: FF
 
-; Triangle wave, louder than others
-; Triangle waveform. Every entry increases by 5 until it peaks at $9F, then decreases by 5 until it hits $05.
-; @TODO@ -- what uses this?
-2C0: 00      nop
-2C1: 05      en   i
-2C2: 0A      in   a,p2
-2C3: 0F      movd a,p7
-2C4: 14 19   call $019
-2C6: 1E      inc  r6
-2C7: 23 28   mov  a,#$28
-2C9: 2D      xch  a,r5
-2CA: 32 37   jb1  $237
-2CC: 3C      movd p4,a
-2CD: 41      orl  a,@r1
-2CE: 46 4B   jnt1 $24B
-2D0: 50      anl  a,@r0
-2D1: 55      strt t
-2D2: 5A      anl  a,r2
-2D3: 5F      anl  a,r7
-2D4: 64 69   jmp  $369
-2D6: 6E      add  a,r6
-2D7: 73      illegal
-2D8: 78      addc a,r0
-2D9: 7D      addc a,r5
-2DA: 82      illegal
-2DB: 87      illegal
-2DC: 8C      orld p4,a
-2DD: 91      movx @r1,a
-2DE: 96 9B   jnz  $29B
-2E0: 9F      anld p7,a
-2E1: 9B      illegal
-2E2: 96 91   jnz  $291
-2E4: 8C      orld p4,a
-2E5: 87      illegal
-2E6: 82      illegal
-2E7: 7D      addc a,r5
-2E8: 78      addc a,r0
-2E9: 73      illegal
-2EA: 6E      add  a,r6
-2EB: 69      add  a,r1
-2EC: 64 5F   jmp  $35F
-2EE: 5A      anl  a,r2
-2EF: 55      strt t
-2F0: 50      anl  a,@r0
-2F1: 4B      orl  a,r3
-2F2: 46 41   jnt1 $241
-2F4: 3C      movd p4,a
-2F5: 37      cpl  a
-2F6: 32 2D   jb1  $22D
-2F8: 28      xch  a,r0
-2F9: 23 1E   mov  a,#$1E
-2FB: 19      inc  r1
-2FC: 14 0F   call $00F
-2FE: 0A      in   a,p2
-2FF: 05      en   i
+; Triangle wavetable, louder than others. Used by routine at $240
+2C0:  00 05 0A 0F 14 19 1E 23 28 2D 32 37 3C 41 46 4B
+2D0:  50 55 5A 5F 64 69 6E 73 78 7D 82 87 8C 91 96 9B
+2E0:  9F 9B 96 91 8C 87 82 7D 78 73 6E 69 64 5F 5A 55
+2F0:  50 4B 46 41 3C 37 32 2D 28 23 1E 19 14 0F 0A 05
 
 300: 00      nop
 301: 2A      xch  a,r2
@@ -1551,8 +1500,7 @@
 6BE: FF      mov  a,r7
 6BF: FF      mov  a,r7
 
-; Wavetable used by routine at $67B. Same as the wavetable at $200.
-; Triangle waveform. Every entry increases by 3 until it peaks at $60, then decreases by 3 until it hits $03.
+; Triangle wavetable used by routine at $67B
 6C0: 00 03 06 09 0C 0F 12 15 18 1B 1E 21 24 27 2A 2D
 6D0: 30 33 36 39 3C 3F 42 45 48 4B 4E 51 54 57 5A 5D
 6E0: 60 5D 5A 57 54 51 4E 4B 48 45 42 3F 3C 39 36 33
