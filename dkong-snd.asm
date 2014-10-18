@@ -6,20 +6,21 @@
 ; Initial disassembly produced by MAME 0.152.
 ;
 ; It's worth noting that this sound CPU does not control all of the game's sound.
-; It primarily controls music; most sound effects are done using discrete logic,
+; It primarily controls music; many sound effects are done using discrete logic,
 ; and cannot be modified via software.
 ;
 ; Port map
 ; --------
+; BUS:  not used
 ; P1:   DAC (out)
-; P2:   plays spring when bit 5 is set on read; for writes, see below (in/out)
-; T0:   play "scored points" ditty (in)
+; P2:   plays spring when bit 5 is clear on read; for writes, see below (in/out)
+; T0:   play "scored points" jingle (in)
 ; T1:   play falling sound effect (in)
 ;
 ; P2 writes
-; --
+; ---------
 ; Bit 7: "apparently an external signal decay or other output control" (according to MAME)
-; Bit 6: if set, External Data Memory reads compressed sample ROM
+; Bit 6: if clear, External Data Memory reads compressed sample ROM
 ; Bit 5: @TODO@ -- used or not?
 ; Bit 4: "status code to main cpu" (according to MAME)
 ; Bits 2-0: Selects 256-byte page for sample ROM reads
@@ -28,14 +29,14 @@
 ;
 ; Data memory map
 ; ---------------
-; $08-??: stack (can't be higher than $18)
-; $18: updated while triangle channel is playing
-; $1d: updated while triangle channel is playing (poking will reset phase while triangle is playing)
-; $1e: triangle channel frequency LSB
-; $1f: triangle channel frequency MSB
+; $08-17: stack
+; $18 (r0'): updated while triangle channel is playing
+; $1d (r5'): updated while triangle channel is playing (poking will reset phase while triangle is playing)
+; $1e (r6'): triangle channel frequency LSB
+; $1f (r7'): triangle channel frequency MSB
 ; $20: number of tune currently playing
 ;
-; $00-07 are r0-r7 in register bank 0; $18-1f are r0-r7 in register bank 1
+; As is standard for the MCS-48 series, $00-07 are r0-r7 and $18-1f are r0'-r7'
 ;
 ; External data memory map
 ; ------------------------
@@ -52,7 +53,47 @@
 ; DM: Data Memory (used by MOV)
 ; PM: Program Memory (used by MOVP/MOVP3)
 ; XDM: External Data Memory (used by MOVX)
-
+; r0': r0 prime (r0 in RB1 as opposed to RB0)
+;
+; Notes
+; -----
+; The program is remarkably stable. You can play with regs or vars all you like in the debugger, and it will often correct itself.
+; If it doesn't, setting PC = 0 should be sufficient to get it to behave normally again.
+;
+; TODO
+; ----
+; There's unused music in here!! It will sometimes play when setting PC to $57d.
+;
+; Music patterns to document in appropriate places
+; ------------------------------------------------
+; 00: none
+; 01: 25m music
+; 02: 50m music? (seems to glitch)
+; 03: nothing?
+; 04: 100m music?
+; 05: running out of time
+; 06: hammer time
+; 07: nothing?
+; 08: scored points
+; 09: melodic part of death music
+; 0a: DK climbing ladders
+; 0b: nothing?
+; 0c: unused mischievous cutscene music
+; 0d: nothing?
+; 0e: nothing?
+; 0f: unused happy cutscene music
+; 10: How high can you get?
+; 11: Rescued Pauline (odd level)
+; 12: Rescued Pauline (unused variant)
+; 13: Rescued Pauline (even level)
+; 14: Completed non-rivet stage
+; 15: DK is about to fall
+; 16: (glitchy crap)
+; 17-7f: seem to just repeat 10-16 over and over
+; 80-ff: has to do with digital audio samples
+;   * fa: unused "Nice!" sample
+;   * fc: unused "Help!" sample
+;   * fd: DK roar (once, not three times like usual)
 
 ; Program execution begins here
 ; -----------------------------
@@ -62,13 +103,19 @@
 
 ; Play death music (interrupt handler)
 ; ------------------------------------
+; This tune has three parts.
+; The first part is a rapid series of descending notes. It's generated mathematically, like a sound effect,
+; so we'll call it the SFX part.
+; The second part is a brief melody using the music engine, so we'll call it the melodic part.
 003: C5      sel  rb0
 004: A5      clr  f1
 005: 8A 40   orl  p2,#$40
 007: 8A 80   orl  p2,#$80
-009: B9 02   mov  r1,#$02
-00B: BA 40   mov  r2,#$40
+009: B9 02   mov  r1,#$02       ; run through loop 1 twice
+00B: BA 40   mov  r2,#$40       ; r2 and r3 control the frequency
 00D: BB 40   mov  r3,#$40
+
+; start of loop 1 (this loop plays the first two notes of SFX part)
 00F: FA      mov  a,r2
 010: 77      rr   a
 011: 77      rr   a
@@ -83,7 +130,9 @@
 01C: 6B      add  a,r3
 01D: AB      mov  r3,a
 01E: 34 00   call $100
-020: E9 0F   djnz r1,$00F
+020: E9 0F   djnz r1,$00F       ; loop back
+
+; start of loop 2 (plays rest of SFX part)
 022: FA      mov  a,r2
 023: 47      swap a
 024: 00      nop
@@ -95,7 +144,7 @@
 02B: AA      mov  r2,a
 02C: AB      mov  r3,a
 02D: 03 D8   add  a,#$D8        ; A < $28?
-02F: E6 3C   jnc  $03C          ; yes; jump
+02F: E6 3C   jnc  $03C          ; yes; jump to melodic part
 031: 34 00   call $100
 033: FB      mov  a,r3
 034: 97      clr  c
@@ -103,8 +152,9 @@
 036: 6B      add  a,r3
 037: AB      mov  r3,a
 038: 34 00   call $100
-03A: 04 22   jmp  $022
+03A: 04 22   jmp  $022          ; loop back
 
+; play melodic part of death music
 03C: D5      sel  rb1
 03D: 23 2B   mov  a,#$2B
 03F: 34 81   call $181
@@ -123,6 +173,9 @@
 
 ; Main
 ; ----
+; The program can (and does) jump here at any time regardless of whether it's inside a subroutine.
+; Since the stack is a circular buffer, the stack never overflows.
+
 ; Initialize program
 052: 05      en   i
 053: 85      clr  f0
@@ -146,7 +199,7 @@
 060: 14 73   call $073
 
 ; start of main loop
-062: 26 74   jnt0 $074
+062: 26 74   jnt0 $074          ; if T0, play "scored points" jingle
 064: A5      clr  f1
 065: 0A      in   a,p2
 066: 37      cpl  a
@@ -168,8 +221,8 @@
 073: 93      retr
 
 
-; Play "scored points" ditty
-; --------------------------
+; Play "scored points" jingle
+; ---------------------------
 074: B8 20   mov  r0,#$20
 076: F0      mov  a,@r0
 077: 03 05   add  a,#$05
@@ -185,7 +238,7 @@
 ; start of loop
 086: D4 38   call $638
 088: 8A 80   orl  p2,#$80
-08A: C6 62   jz   $062          ; jump to program's main loop
+08A: C6 62   jz   $062          ; if zero, jump to program's main loop
 08C: B9 03   mov  r1,#$03
 08E: 34 3F   call $13F
 090: B4 35   call $535
@@ -257,23 +310,24 @@
 0EE: 04 CE   jmp  $0CE
 
 ; junk
-0F0: FF      mov  a,r7
-0F1: FF      mov  a,r7
-0F2: FF      mov  a,r7
-0F3: FF      mov  a,r7
-0F4: FF      mov  a,r7
-0F5: FF      mov  a,r7
-0F6: FF      mov  a,r7
-0F7: FF      mov  a,r7
-0F8: FF      mov  a,r7
-0F9: FF      mov  a,r7
-0FA: FF      mov  a,r7
-0FB: FF      mov  a,r7
-0FC: FF      mov  a,r7
-0FD: FF      mov  a,r7
-0FE: FF      mov  a,r7
-0FF: FF      mov  a,r7
+0F0: FF
+0F1: FF
+0F2: FF
+0F3: FF
+0F4: FF
+0F5: FF
+0F6: FF
+0F7: FF
+0F8: FF
+0F9: FF
+0FA: FF
+0FB: FF
+0FC: FF
+0FD: FF
+0FE: FF
+0FF: FF
 
+; Called from death music routine
 100: B8 03   mov  r0,#$03       ; call $123 three times
 102: 34 23   call $123
 104: E8 02   djnz r0,$102
@@ -282,6 +336,7 @@
 10A: E8 08   djnz r0,$108
 10C: 83      ret
 
+; called from $100
 10D: 27      clr  a
 10E: AE      mov  r6,a
 10F: AF      mov  r7,a
@@ -301,6 +356,7 @@
 120: AE      mov  r6,a
 121: A4 35   jmp  $535
 
+; called from $100
 123: FB      mov  a,r3
 124: 77      rr   a
 125: 77      rr   a
@@ -334,13 +390,17 @@
 147: 1F      inc  r7
 148: AE      mov  r6,a
 149: 83      ret
+
+; Called from $57d music routine
+; A = address of playlist in bank 5
+; RB is always 1 when called
 14A: AB      mov  r3,a
-14B: D5      sel  rb1
+14B: D5      sel  rb1           ; can get here from $15c
 14C: FB      mov  a,r3
 14D: 1B      inc  r3
 14E: C5      sel  rb0
-14F: B4 33   call $533
-151: C6 9E   jz   $19E
+14F: B4 33   call $533          ; fetch from page 5
+151: C6 9E   jz   $19E          ; return if hit end of playlist
 153: F2 9F   jb7  $19F
 155: A8      mov  r0,a
 156: D4 1A   call $61A
@@ -368,12 +428,13 @@
 17D: E9 7A   djnz r1,$17A
 17F: 24 58   jmp  $158
 
+; called while playing intro music and DK roar during intro (not other DK roars!)
 181: AB      mov  r3,a
 182: D5      sel  rb1
 183: FB      mov  a,r3
 184: 1B      inc  r3
 185: C5      sel  rb0
-186: B4 33   call $533
+186: B4 33   call $533          ; fetch from page 5
 188: C6 9E   jz   $19E          ; return if zero
 18A: F2 9F   jb7  $19F
 18C: A8      mov  r0,a
@@ -392,99 +453,100 @@
 19F: BE 80   mov  r6,#$80
 1A1: A4 A2   jmp  $5A2
 
-1A3: FF      mov  a,r7
-1A4: FF      mov  a,r7
-1A5: FF      mov  a,r7
-1A6: FF      mov  a,r7
-1A7: FF      mov  a,r7
-1A8: FF      mov  a,r7
-1A9: FF      mov  a,r7
-1AA: FF      mov  a,r7
-1AB: FF      mov  a,r7
-1AC: FF      mov  a,r7
-1AD: FF      mov  a,r7
-1AE: FF      mov  a,r7
-1AF: FF      mov  a,r7
-1B0: FF      mov  a,r7
-1B1: FF      mov  a,r7
-1B2: FF      mov  a,r7
-1B3: FF      mov  a,r7
-1B4: FF      mov  a,r7
-1B5: FF      mov  a,r7
-1B6: FF      mov  a,r7
-1B7: FF      mov  a,r7
-1B8: FF      mov  a,r7
-1B9: FF      mov  a,r7
-1BA: FF      mov  a,r7
-1BB: FF      mov  a,r7
-1BC: FF      mov  a,r7
-1BD: FF      mov  a,r7
-1BE: FF      mov  a,r7
-1BF: FF      mov  a,r7
-1C0: FF      mov  a,r7
-1C1: FF      mov  a,r7
-1C2: FF      mov  a,r7
-1C3: FF      mov  a,r7
-1C4: FF      mov  a,r7
-1C5: FF      mov  a,r7
-1C6: FF      mov  a,r7
-1C7: FF      mov  a,r7
-1C8: FF      mov  a,r7
-1C9: FF      mov  a,r7
-1CA: FF      mov  a,r7
-1CB: FF      mov  a,r7
-1CC: FF      mov  a,r7
-1CD: FF      mov  a,r7
-1CE: FF      mov  a,r7
-1CF: FF      mov  a,r7
-1D0: FF      mov  a,r7
-1D1: FF      mov  a,r7
-1D2: FF      mov  a,r7
-1D3: FF      mov  a,r7
-1D4: FF      mov  a,r7
-1D5: FF      mov  a,r7
-1D6: FF      mov  a,r7
-1D7: FF      mov  a,r7
-1D8: FF      mov  a,r7
-1D9: FF      mov  a,r7
-1DA: FF      mov  a,r7
-1DB: FF      mov  a,r7
-1DC: FF      mov  a,r7
-1DD: FF      mov  a,r7
-1DE: FF      mov  a,r7
-1DF: FF      mov  a,r7
-1E0: FF      mov  a,r7
-1E1: FF      mov  a,r7
-1E2: FF      mov  a,r7
-1E3: FF      mov  a,r7
-1E4: FF      mov  a,r7
-1E5: FF      mov  a,r7
-1E6: FF      mov  a,r7
-1E7: FF      mov  a,r7
-1E8: FF      mov  a,r7
-1E9: FF      mov  a,r7
-1EA: FF      mov  a,r7
-1EB: FF      mov  a,r7
-1EC: FF      mov  a,r7
-1ED: FF      mov  a,r7
-1EE: FF      mov  a,r7
-1EF: FF      mov  a,r7
-1F0: FF      mov  a,r7
-1F1: FF      mov  a,r7
-1F2: FF      mov  a,r7
-1F3: FF      mov  a,r7
-1F4: FF      mov  a,r7
-1F5: FF      mov  a,r7
-1F6: FF      mov  a,r7
-1F7: FF      mov  a,r7
-1F8: FF      mov  a,r7
-1F9: FF      mov  a,r7
-1FA: FF      mov  a,r7
-1FB: FF      mov  a,r7
-1FC: FF      mov  a,r7
-1FD: FF      mov  a,r7
-1FE: FF      mov  a,r7
-1FF: FF      mov  a,r7
+; junk
+1A3: FF
+1A4: FF
+1A5: FF
+1A6: FF
+1A7: FF
+1A8: FF
+1A9: FF
+1AA: FF
+1AB: FF
+1AC: FF
+1AD: FF
+1AE: FF
+1AF: FF
+1B0: FF
+1B1: FF
+1B2: FF
+1B3: FF
+1B4: FF
+1B5: FF
+1B6: FF
+1B7: FF
+1B8: FF
+1B9: FF
+1BA: FF
+1BB: FF
+1BC: FF
+1BD: FF
+1BE: FF
+1BF: FF
+1C0: FF
+1C1: FF
+1C2: FF
+1C3: FF
+1C4: FF
+1C5: FF
+1C6: FF
+1C7: FF
+1C8: FF
+1C9: FF
+1CA: FF
+1CB: FF
+1CC: FF
+1CD: FF
+1CE: FF
+1CF: FF
+1D0: FF
+1D1: FF
+1D2: FF
+1D3: FF
+1D4: FF
+1D5: FF
+1D6: FF
+1D7: FF
+1D8: FF
+1D9: FF
+1DA: FF
+1DB: FF
+1DC: FF
+1DD: FF
+1DE: FF
+1DF: FF
+1E0: FF
+1E1: FF
+1E2: FF
+1E3: FF
+1E4: FF
+1E5: FF
+1E6: FF
+1E7: FF
+1E8: FF
+1E9: FF
+1EA: FF
+1EB: FF
+1EC: FF
+1ED: FF
+1EE: FF
+1EF: FF
+1F0: FF
+1F1: FF
+1F2: FF
+1F3: FF
+1F4: FF
+1F5: FF
+1F6: FF
+1F7: FF
+1F8: FF
+1F9: FF
+1FA: FF
+1FB: FF
+1FC: FF
+1FD: FF
+1FE: FF
+1FF: FF
 
 ; Looks like this is all data until $240
 200: 00      nop
@@ -573,101 +635,101 @@
 25F: C5      sel  rb0
 260: 83      ret
 
-261: FF      mov  a,r7
-262: FF      mov  a,r7
-263: FF      mov  a,r7
-264: FF      mov  a,r7
-265: FF      mov  a,r7
-266: FF      mov  a,r7
-267: FF      mov  a,r7
-268: FF      mov  a,r7
-269: FF      mov  a,r7
-26A: FF      mov  a,r7
-26B: FF      mov  a,r7
-26C: FF      mov  a,r7
-26D: FF      mov  a,r7
-26E: FF      mov  a,r7
-26F: FF      mov  a,r7
-270: FF      mov  a,r7
-271: FF      mov  a,r7
-272: FF      mov  a,r7
-273: FF      mov  a,r7
-274: FF      mov  a,r7
-275: FF      mov  a,r7
-276: FF      mov  a,r7
-277: FF      mov  a,r7
-278: FF      mov  a,r7
-279: FF      mov  a,r7
-27A: FF      mov  a,r7
-27B: FF      mov  a,r7
-27C: FF      mov  a,r7
-27D: FF      mov  a,r7
-27E: FF      mov  a,r7
-27F: FF      mov  a,r7
-280: FF      mov  a,r7
-281: FF      mov  a,r7
-282: FF      mov  a,r7
-283: FF      mov  a,r7
-284: FF      mov  a,r7
-285: FF      mov  a,r7
-286: FF      mov  a,r7
-287: FF      mov  a,r7
-288: FF      mov  a,r7
-289: FF      mov  a,r7
-28A: FF      mov  a,r7
-28B: FF      mov  a,r7
-28C: FF      mov  a,r7
-28D: FF      mov  a,r7
-28E: FF      mov  a,r7
-28F: FF      mov  a,r7
-290: FF      mov  a,r7
-291: FF      mov  a,r7
-292: FF      mov  a,r7
-293: FF      mov  a,r7
-294: FF      mov  a,r7
-295: FF      mov  a,r7
-296: FF      mov  a,r7
-297: FF      mov  a,r7
-298: FF      mov  a,r7
-299: FF      mov  a,r7
-29A: FF      mov  a,r7
-29B: FF      mov  a,r7
-29C: FF      mov  a,r7
-29D: FF      mov  a,r7
-29E: FF      mov  a,r7
-29F: FF      mov  a,r7
-2A0: FF      mov  a,r7
-2A1: FF      mov  a,r7
-2A2: FF      mov  a,r7
-2A3: FF      mov  a,r7
-2A4: FF      mov  a,r7
-2A5: FF      mov  a,r7
-2A6: FF      mov  a,r7
-2A7: FF      mov  a,r7
-2A8: FF      mov  a,r7
-2A9: FF      mov  a,r7
-2AA: FF      mov  a,r7
-2AB: FF      mov  a,r7
-2AC: FF      mov  a,r7
-2AD: FF      mov  a,r7
-2AE: FF      mov  a,r7
-2AF: FF      mov  a,r7
-2B0: FF      mov  a,r7
-2B1: FF      mov  a,r7
-2B2: FF      mov  a,r7
-2B3: FF      mov  a,r7
-2B4: FF      mov  a,r7
-2B5: FF      mov  a,r7
-2B6: FF      mov  a,r7
-2B7: FF      mov  a,r7
-2B8: FF      mov  a,r7
-2B9: FF      mov  a,r7
-2BA: FF      mov  a,r7
-2BB: FF      mov  a,r7
-2BC: FF      mov  a,r7
-2BD: FF      mov  a,r7
-2BE: FF      mov  a,r7
-2BF: FF      mov  a,r7
+261: FF
+262: FF
+263: FF
+264: FF
+265: FF
+266: FF
+267: FF
+268: FF
+269: FF
+26A: FF
+26B: FF
+26C: FF
+26D: FF
+26E: FF
+26F: FF
+270: FF
+271: FF
+272: FF
+273: FF
+274: FF
+275: FF
+276: FF
+277: FF
+278: FF
+279: FF
+27A: FF
+27B: FF
+27C: FF
+27D: FF
+27E: FF
+27F: FF
+280: FF
+281: FF
+282: FF
+283: FF
+284: FF
+285: FF
+286: FF
+287: FF
+288: FF
+289: FF
+28A: FF
+28B: FF
+28C: FF
+28D: FF
+28E: FF
+28F: FF
+290: FF
+291: FF
+292: FF
+293: FF
+294: FF
+295: FF
+296: FF
+297: FF
+298: FF
+299: FF
+29A: FF
+29B: FF
+29C: FF
+29D: FF
+29E: FF
+29F: FF
+2A0: FF
+2A1: FF
+2A2: FF
+2A3: FF
+2A4: FF
+2A5: FF
+2A6: FF
+2A7: FF
+2A8: FF
+2A9: FF
+2AA: FF
+2AB: FF
+2AC: FF
+2AD: FF
+2AE: FF
+2AF: FF
+2B0: FF
+2B1: FF
+2B2: FF
+2B3: FF
+2B4: FF
+2B5: FF
+2B6: FF
+2B7: FF
+2B8: FF
+2B9: FF
+2BA: FF
+2BB: FF
+2BC: FF
+2BD: FF
+2BE: FF
+2BF: FF
 
 2C0: 00      nop
 2C1: 05      en   i
@@ -1039,110 +1101,163 @@
 4C7: 88 84   orl  bus,#$84
 4C9: 88 84   orl  bus,#$84
 4CB: 00      nop
-4CC: FF      mov  a,r7
-4CD: FF      mov  a,r7
-4CE: FF      mov  a,r7
-4CF: FF      mov  a,r7
-4D0: FF      mov  a,r7
-4D1: FF      mov  a,r7
-4D2: FF      mov  a,r7
-4D3: FF      mov  a,r7
-4D4: FF      mov  a,r7
-4D5: FF      mov  a,r7
-4D6: FF      mov  a,r7
-4D7: FF      mov  a,r7
-4D8: FF      mov  a,r7
-4D9: FF      mov  a,r7
-4DA: FF      mov  a,r7
-4DB: FF      mov  a,r7
-4DC: FF      mov  a,r7
-4DD: FF      mov  a,r7
-4DE: FF      mov  a,r7
-4DF: FF      mov  a,r7
-4E0: FF      mov  a,r7
-4E1: FF      mov  a,r7
-4E2: FF      mov  a,r7
-4E3: FF      mov  a,r7
-4E4: FF      mov  a,r7
-4E5: FF      mov  a,r7
-4E6: FF      mov  a,r7
-4E7: FF      mov  a,r7
-4E8: FF      mov  a,r7
-4E9: FF      mov  a,r7
-4EA: FF      mov  a,r7
-4EB: FF      mov  a,r7
-4EC: FF      mov  a,r7
-4ED: FF      mov  a,r7
-4EE: FF      mov  a,r7
-4EF: FF      mov  a,r7
-4F0: FF      mov  a,r7
-4F1: FF      mov  a,r7
-4F2: FF      mov  a,r7
-4F3: FF      mov  a,r7
-4F4: FF      mov  a,r7
-4F5: FF      mov  a,r7
-4F6: FF      mov  a,r7
-4F7: FF      mov  a,r7
+4CC: FF
+4CD: FF
+4CE: FF
+4CF: FF
+4D0: FF
+4D1: FF
+4D2: FF
+4D3: FF
+4D4: FF
+4D5: FF
+4D6: FF
+4D7: FF
+4D8: FF
+4D9: FF
+4DA: FF
+4DB: FF
+4DC: FF
+4DD: FF
+4DE: FF
+4DF: FF
+4E0: FF
+4E1: FF
+4E2: FF
+4E3: FF
+4E4: FF
+4E5: FF
+4E6: FF
+4E7: FF
+4E8: FF
+4E9: FF
+4EA: FF
+4EB: FF
+4EC: FF
+4ED: FF
+4EE: FF
+4EF: FF
+4F0: FF
+4F1: FF
+4F2: FF
+4F3: FF
+4F4: FF
+4F5: FF
+4F6: FF
+4F7: FF
 4F8: A3      movp a,@a
 4F9: 83      ret
-4FA: FF      mov  a,r7
-4FB: FF      mov  a,r7
-4FC: FF      mov  a,r7
-4FD: FF      mov  a,r7
-4FE: FF      mov  a,r7
-4FF: FF      mov  a,r7
+4FA: FF
+4FB: FF
+4FC: FF
+4FD: FF
+4FE: FF
+4FF: FF
+
 
 ; Song table
 ; ----------
-500: 00      db $00             ; 0: No music
-501: 20      db $20             ; 1: Music when DK climbs ladder
-502: 10      db $10             ; 2: How high can you get?
-503: 05      db $05             ; 3: Running out of time
-504: 06      db $06             ; 4: Hammer music
-505: 12      db $12             ; 5: Music after beating even-numbered rivet levels
-506: 40      db $40             ; 6: Hammer hit
-507: 16      db $16             ; 7: Music for completing a non-rivet stage
-508: 01      db $01             ; 8: Music for barrel stage
-509: 02      db $02             ; 9: Music for pie factory
-50A: 00      db $00             ; A: Music for elevator stage (or lack thereof)
-50B: 04      db $04             ; B: Music for rivet stage
-50C: 14      db $14             ; C: Music after beating odd-numbered rivet levels
-50D: FA      db $FA             ; D: Used when rivet removed
-50E: 1E      db $1E             ; E: Music when DK is about to fall in rivet stage
-50F: 2D      db $2D             ; F: DK roars
+; Used by routine at $535
+;
+; Bits for each song:
+;   Bit 7: rivet removed
+;   Bit 6: hammer hit
+;   Bit 5: ??? (DK climbs ladder music)
+;   Bit 4: various intermission tunes (How high can you get?, etc.)
+;
+; In addition, all bits except 0 and 2 are set with "rivet removed" ditty.
+; If all bits are 0, no music is played
+; 0: No music
+500: 00      db $00             ; %00000000
 
-510: 10      inc  @r0
-511: 00      nop
-512: 13 00   addc a,#$00
-514: 11      inc  @r1
-515: 00      nop
-516: 14 83   call $083
-518: FE      mov  a,r6
-519: 85      clr  f0
-51A: FE      mov  a,r6
-51B: 85      clr  f0
-51C: FE      mov  a,r6
-51D: 00      nop
-51E: 15      dis  i
-51F: 00      nop
-520: 0A      in   a,p2
-521: 00      nop
-522: 95      cpl  f0
-523: FE      mov  a,r6
-524: 85      clr  f0
-525: FE      mov  a,r6
-526: 85      clr  f0
-527: FE      mov  a,r6
-528: 00      nop
-529: 00      nop
-52A: 00      nop
-52B: 09      in   a,p1
-52C: 00      nop
-52D: FE      mov  a,r6
-52E: 84 FE   jmp  $4FE
-530: 83      ret
-531: FE      mov  a,r6
-532: 00      nop
+; 1: Music when DK climbs ladder
+501: 20      db $20             ; %00100000
+
+; 2: How high can you get?
+502: 10      db $10             ; %00010000
+
+; 3: Running out of time
+503: 05      db $05             ; %00000101
+
+; 4: Hammer music
+504: 06      db $06             ; %00000110
+
+; 5: Music after beating even-numbered rivet levels
+505: 12      db $12             ; %00010010
+
+; 6: Hammer hit
+506: 40      db $40             ; %01000000
+
+; 7: Music for completing a non-rivet stage
+507: 16      db $16             ; %00010110
+
+; 8: Music for barrel stage
+508: 01      db $01             ; %00000001
+
+; 9: Music for pie factory
+509: 02      db $02             ; %00000010
+
+; A: Music (or lack thereof) for elevator stage
+50A: 00      db $00             ; %00000000
+
+; B: Music for rivet stage
+50B: 04      db $04             ; %00000100
+
+; C: Music after beating odd-numbered rivet levels
+50C: 14      db $14             ; %00010100
+
+; D: Used when rivet removed
+50D: FA      db $fa             ; %11111010
+
+; E: Music when DK is about to fall in rivet stage
+50E: 1E      db $1e             ; %00011110
+
+; F: DK roars
+50F: 2D      db $2d             ; %00101101
+
+; Playlist table for $57d songs 
+; -----------------------------
+; For instance, $516 will play patterns $14, $83, $fe, etc. until it hits $00.
+; FE 85 FE 85 FE 00 indicates a gorilla roar
+510: 10      db $10             ; How high can you get?
+511: 00      db $00
+512: 13      db $13             ; Rescued Pauline (even level)
+513: 00      db $00
+514: 11      db $11             ; Rescued Pauline (odd level)
+515: 00      db $00
+516: 14      db $14             ; Completed non-rivet stage
+517: 83      db $83
+518: FE      db $fe
+519: 85      db $85
+51A: FE      db $fe
+51B: 85      db $85
+51C: FE      db $fe
+51D: 00      db $00
+51E: 15      db $15             ; DK about to fall
+51F: 00      db $00
+
+; Playlist table for $581 songs
+; -----------------------------
+; $522 through $52a seem to be unused
+520: 0A      db $0a             ; DK climbs ladder
+521: 00      db $00
+522: 95      db $95             ; unused???
+523: FE      db $fe
+524: 85      db $85
+525: FE      db $fe
+526: 85      db $85
+527: FE      db $fe
+528: 00      db $00
+529: 00      db $00
+52A: 00      db $00
+52B: 09      db $09             ; death music
+52C: 00      db $00
+52D: FE      db $fe             ; gorilla roar during intro
+52E: 84      db $84
+52F: FE      db $fe
+530: 83      db $83
+531: FE      db $fe
+532: 00      db $00
 
 ; Fetch from page 5
 ; -----------------
@@ -1151,12 +1266,16 @@
 534: 83      ret
 
 ; Part of the program's main loop
+; -------------------------------
 535: D5      sel  rb1
-536: B8 20   mov  r0,#$20       ; load A with (inverted) number of tune to play
+536: B8 20   mov  r0,#$20       ; load A with inverted number of tune to play
 538: 80      movx a,@r0
-539: 37      cpl  a             ; uninvert
+539: 37      cpl  a             ; uninvert tune number
 53A: 53 0F   anl  a,#$0F        ; clear high nybble
-53C: 20      xch  a,@r0         ; store uninverted copy in $20 and load previous value
+
+; Check whether this the tune is already playing
+; (i.e., compare $20 with the song ID we're about to put in $20)
+53C: 20      xch  a,@r0         ; fetch previous value as we store the new one
 53D: 37      cpl  a             ; invert previous value
 53E: 17      inc  a
 53F: 60      add  a,@r0
@@ -1167,8 +1286,8 @@
 544: 46 BA   jnt1 $5BA          ; if T1, start fall noise
 546: F0      mov  a,@r0
 547: A3      movp a,@a
-548: C6 5D   jz   $55D
-54A: F2 5F   jb7  $55F
+548: C6 5D   jz   $55D          ; if zero, skip to $67B
+54A: F2 5F   jb7  $55F          ; clear triangle frequency if bit 7 set
 54C: 34 3F   call $13F
 54E: E9 5D   djnz r1,$55D
 550: FF      mov  a,r7
@@ -1188,16 +1307,19 @@
 561: AF      mov  r7,a
 562: C4 7B   jmp  $67B
 
-; Play song
-; ---------
+; Start song
+; ----------
+; Uses RB1
 ; @r0 contains the ID of the song to play
 564: F0      mov  a,@r0
 565: A3      movp a,@a
 566: C6 5F   jz   $55F          ; go to $55f if 'song' is silence
-568: F2 8C   jb7  $58C
-56A: 92 7D   jb4  $57D
-56C: B2 81   jb5  $581
-56E: D2 E5   jb6  $5E5
+568: F2 8C   jb7  $58C          ; "rivet removed" jingle
+56A: 92 7D   jb4  $57D          ; various intermission music
+56C: B2 81   jb5  $581          ; DK climbs ladder or DK roars
+56E: D2 E5   jb6  $5E5          ; hammer hit
+
+; If we get here, it must be stage theme, hammer theme, or running out of time theme
 570: 8A 80   orl  p2,#$80
 572: A8      mov  r0,a
 573: D4 1A   call $61A
@@ -1206,16 +1328,20 @@
 579: B9 08   mov  r1,#$08
 57B: C4 7B   jmp  $67B
 
+; Play tune that uses volume envelopes
+; ------------------------------------
 57D: 34 4A   call $14A
 57F: 04 52   jmp  $052
 
+; Play tune that does not use volume envelopes
+; --------------------------------------------
 581: 34 81   call $181
-583: 04 52   jmp  $052
+583: 04 52   jmp  $052          ; jump to main
 
 585: C5      sel  rb0
 586: BE 80   mov  r6,#$80
 588: F4 06   call $706
-58A: 04 52   jmp  $052
+58A: 04 52   jmp  $052          ; jump to main
 
 58C: 76 91   jf1  $591
 58E: C5      sel  rb0
@@ -1245,8 +1371,10 @@
 5AC: 16 AE   jtf  $5AE
 5AE: 16 B2   jtf  $5B2
 5B0: A4 AE   jmp  $5AE
+
 5B2: E9 A9   djnz r1,$5A9
 5B4: A4 95   jmp  $595
+
 5B6: F4 06   call $706
 5B8: A4 95   jmp  $595
 
@@ -1311,26 +1439,34 @@
 5FE: FF      mov  a,r7
 5FF: FF      mov  a,r7
 
-600: 28      xch  a,r0
-601: 00      nop
-602: 2A      xch  a,r2
-603: 61      add  a,@r1
-604: 2C      xch  a,r4
-605: E6 2F   jnc  $62F
-607: 91      movx @r1,a
-608: 32 66   jb1  $666
-60A: FF      mov  a,r7
-60B: FF      mov  a,r7
-60C: 35      dis  tcnti
-60D: 65      stop tcnt
-60E: 38      illegal
-60F: 92 3B   jb4  $63B
-611: EF 3F   djnz r7,$63F
-613: 75      ent0 clk
-614: 43 46   orl  a,#$46
-616: 47      swap a
-617: 46 4B   jnt1 $64B
-619: 83      ret
+; chunk o' data
+600: 28
+601: 00
+602: 2A
+603: 61
+604: 2C
+605: E6
+606: 2F
+607: 91
+608: 32
+609: 66
+60A: FF
+60B: FF
+60C: 35
+60D: 65
+60E: 38
+60F: 92
+610: 3B
+611: EF
+612: 3F
+613: 75
+614: 43
+615: 46
+616: 47
+617: 46
+618: 4B
+619: 83
+
 61A: BB 00   mov  r3,#$00
 61C: B9 30   mov  r1,#$30
 61E: B1 FF   mov  @r1,#$FF
@@ -1338,6 +1474,7 @@
 622: 96 20   jnz  $620
 624: E8 20   djnz r0,$620
 626: 83      ret
+
 627: B9 30   mov  r1,#$30
 629: FB      mov  a,r3
 62A: 96 2D   jnz  $62D
@@ -1348,6 +1485,7 @@
 631: 1B      inc  r3
 632: E3      movp3 a,@a
 633: 83      ret
+
 634: FB      mov  a,r3
 635: 1B      inc  r3
 636: 84 F8   jmp  $4F8
@@ -1363,12 +1501,14 @@
 647: D4 5D   call $65D
 649: F8      mov  a,r0
 64A: 83      ret
+
 64B: D2 54   jb6  $654
 64D: D5      sel  rb1
 64E: BE 00   mov  r6,#$00
 650: BF 00   mov  r7,#$00
 652: C5      sel  rb0
 653: 83      ret
+
 654: D4 27   call $627
 656: D5      sel  rb1
 657: A8      mov  r0,a
@@ -1376,6 +1516,7 @@
 65A: C5      sel  rb0
 65B: F8      mov  a,r0
 65C: 83      ret
+
 65D: F8      mov  a,r0
 65E: 53 0F   anl  a,#$0F
 660: E7      rl   a
@@ -1402,6 +1543,7 @@
 676: 03 FC   add  a,#$FC
 678: 96 6D   jnz  $66D
 67A: 83      ret
+
 67B: 42      mov  a,t
 67C: 03 80   add  a,#$80
 67E: 62      mov  t,a
@@ -1541,15 +1683,17 @@
 71F: F4 24   call $724
 721: 8A 80   orl  p2,#$80
 723: 83      ret
+
+; This code has to do with playing a sample from sample ROM
 724: BF 00   mov  r7,#$00
 726: 9A BF   anl  p2,#$BF
 728: A5      clr  f1
-729: 23 B0   mov  a,#$B0
+729: 23 B0   mov  a,#$B0        ; prepare to switch XDM to digital sample ROM
 72B: 48      orl  a,r0
-72C: 3A      outl p2,a
+72C: 3A      outl p2,a          ; switch!
 72D: BA 08   mov  r2,#$08
 72F: 81      movx a,@r1
-730: E9 3B   djnz r1,$73B
+730: E9 3B   djnz r1,$73B       ; jump ahead if not zero
 732: AB      mov  r3,a
 733: C8      dec  r0
 734: F8      mov  a,r0
@@ -1557,7 +1701,7 @@
 737: 43 B0   orl  a,#$B0
 739: 3A      outl p2,a
 73A: FB      mov  a,r3
-73B: 77      rr   a
+73B: 77      rr   a             ; we can get here from $730
 73C: AB      mov  r3,a
 73D: F2 78   jb7  $778
 73F: 76 5B   jf1  $75B
@@ -1576,7 +1720,7 @@
 750: F6 59   jc   $759
 752: 27      clr  a
 753: AE      mov  r6,a
-754: 39      outl p1,a
+754: 39      outl p1,a          ; output to DAC
 755: EA AC   djnz r2,$7AC
 757: E4 2D   jmp  $72D
 759: E4 54   jmp  $754

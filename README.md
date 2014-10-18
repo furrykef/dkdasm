@@ -16,8 +16,8 @@ This project [began life on the Donkey Kong Forum](http://donkeykongforum.com/in
 The second phase [took place on the github](http://www.github.com/furrykef/dkdasm). This phase consisted of replacing raw offsets with labels with descriptive names. Not only does this make the source easier to read, it also makes it possible to relocate RAM and ROM, which may be necessary for porting the game to other systems. We also cleaned up the source code in other respects.
 
 Phase one contributors:
-* Jeffw
-* Coreychambers
+* Jeff Wilms
+* Corey Chambers
 * At least one contributor who wishes to remain anonymous
 
 Phase two contributors:
