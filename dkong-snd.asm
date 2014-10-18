@@ -1738,7 +1738,7 @@
 768: F6 71   jc   $771
 76A: 27      clr  a
 76B: AE      mov  r6,a
-76C: 39      outl p1,a
+76C: 39      outl p1,a          ; clear DAC
 76D: EA AC   djnz r2,$7AC
 76F: E4 2D   jmp  $72D
 771: 00      nop

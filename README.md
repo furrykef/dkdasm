@@ -17,7 +17,6 @@ The second phase [took place on the github](http://www.github.com/furrykef/dkdas
 
 Phase one contributors:
 * Jeff Wilms
-* Corey Chambers
 * At least one contributor who wishes to remain anonymous
 
 Phase two contributors:
