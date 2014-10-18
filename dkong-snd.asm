@@ -409,17 +409,17 @@
 158: D4 38   call $638
 15A: D4 4B   call $64B
 15C: C6 4B   jz   $14B
-15E: B9 03   mov  r1,#$03
+15E: B9 03   mov  r1,#$03       ; loop three times
 160: 8A 80   orl  p2,#$80
-162: 34 3F   call $13F
-164: D5      sel  rb1
-165: 34 3F   call $13F
+162: 34 3F   call $13F          ; load channel frequency
+164: D5      sel  rb1           ; set channel B
+165: 34 3F   call $13F          ; load channel frequency
 167: D4 7B   call $67B
-169: E9 62   djnz r1,$162
-16B: B9 04   mov  r1,#$04
+169: E9 62   djnz r1,$162       ; loop
+16B: B9 04   mov  r1,#$04       ; call $67b four times
 16D: D5      sel  rb1
 16E: D4 7B   call $67B
-170: E9 6D   djnz r1,$16D
+170: E9 6D   djnz r1,$16D       ; loop
 172: FA      mov  a,r2
 173: 03 F9   add  a,#$F9
 175: A9      mov  r1,a
@@ -1426,15 +1426,24 @@
 678: 96 6D   jnz  $66D
 67A: 83      ret
 
-; This has to do with playing sound waves
-; RB is 1
-67B: 42      mov  a,t           ; T will be very low here. So this reduces the time before timer fires
-67C: 03 80   add  a,#$80        ; @TODO@ -- but why $80?
+; Play channels
+; -------------
+; This is the primary routine used to output channels A and B -- the music engine's inner loop.
+; It plays a few samples, then returns after a timer fires to give the rest of the music engine a chance to run.
+;
+; r6-7: channel A frequency (16-bit; r6 = LSB)
+; r6'-7': channel B frequency (16-bit; r6 = LSB)
+; RB is 1 upon entry
+
+; T will be very low here (often 0 or 1). So this roughly halves the time before timer fires
+67B: 42      mov  a,t
+67C: 03 80   add  a,#$80
 67E: 62      mov  t,a
+
 67F: 76 A2   jf1  $6A2          ; skip to end if ??? (a rare condition, apparently)
 
 ; start of loop
-; add r6' and r7' to r4' and r5' (this is a 16-bit add)
+; add r6' and r7' (channel B frequency) to r4' and r5' (this is a 16-bit add)
 681: FC      mov  a,r4
 682: 6E      add  a,r6
 683: AC      mov  r4,a
@@ -1442,11 +1451,18 @@
 685: 7F      addc a,r7
 686: AD      mov  r5,a
 
+; A = 0xc0 | (A >> 2)
+; This is to index into the wavetable at $6c0
 687: 77      rr   a
 688: 77      rr   a
 689: 43 C0   orl  a,#$C0
 68B: A3      movp a,@a
+
+; A now contains the output sample from channel B.
+; Store it in r0'
 68C: A8      mov  r0,a
+
+; Repeat everything we just did, but in RB0
 68D: C5      sel  rb0
 68E: FC      mov  a,r4
 68F: 6E      add  a,r6
@@ -1458,8 +1474,11 @@
 695: 77      rr   a
 696: 43 C0   orl  a,#$C0
 698: A3      movp a,@a
+
+; Mix channel A output with the channel B output stored in r0'
 699: D5      sel  rb1
 69A: 68      add  a,r0
+
 69B: 39      outl p1,a          ; output to DAC
 69C: 16 A0   jtf  $6A0          ; return when timer fires
 69E: C4 81   jmp  $681          ; loop back
