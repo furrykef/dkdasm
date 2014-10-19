@@ -19,9 +19,9 @@
 ;
 ; P2 writes
 ; ---------
-; Bit 7: "apparently an external signal decay or other output control" (according to MAME)
+; Bit 7: decay for volume envelopes if clear
 ; Bit 6: if clear, External Data Memory reads compressed sample ROM
-; Bit 5: @TODO@ -- used or not?
+; Bit 5: seems unused
 ; Bit 4: "status code to main cpu" (according to MAME)
 ; Bits 2-0: Selects 256-byte page for sample ROM reads
 ;
@@ -46,7 +46,7 @@
 ; The value read from $20 is the value written to REG_MUSIC in the main program, but with the lower four bits inverted.
 ; So if the Z80 writes 02 to REG_MUSIC, the i8035 will get 0D on at $20.
 ;
-; $20 is sometimes written to. I don't know what this does and it may do nothing. (@TODO@ -- find out for sure)
+; T, the system timer, is used to decide when to stop playing sound and fetch data for the next iteration of the loop.
 ;
 ; Sound channels
 ; --------------
@@ -55,7 +55,9 @@
 ; Outside of play, both are used for music.
 ; Both channels use wavetables. Which tables are used depends on the routine, but they're all triangle waves.
 ;
-; These channels are played by a loop that runs at about 11,764 Hz.
+; These channels are played by a loop that runs at about 11,765 Hz.
+; In every iteration of the loop, it increments the channel's counter by the frequency.
+; The highest six bits of this counter are the output of that channel for that iteration.
 ;
 ; To convert frequency in Hz to our frequency value, multiply by 65536/11765 = 5.5704.
 ; So if you want to play a 440 Hz tone, the number stored would be 440*5.5704 = 2450 = $992.
@@ -196,7 +198,7 @@
 053: 85      clr  f0
 054: A5      clr  f1
 
-; Clear $20 in XDM (@TODO@ -- any purpose?)
+; Clear number of tune
 055: B8 20   mov  r0,#$20
 057: B0 00   mov  @r0,#$00
 
@@ -207,7 +209,8 @@
 05C: AF      mov  r7,a
 05D: C5      sel  rb0
 
-; ???
+; No decay
+; (Fall noise when DK falls will be too quiet if this is NOPped out)
 05E: 8A 80   orl  p2,#$80
 
 ; signal end of interrupt?
@@ -575,7 +578,9 @@
 220: 60 5D 5A 57 54 51 4E 4B 48 45 42 3F 3C 39 36 33
 230: 30 2D 2A 27 24 21 1E 1B 18 15 12 0F 0C 09 06 03
 
-; This routine has to do with playing the wavetables found elsewhere on this page
+; This routine has to do with playing the wavetables found elsewhere on this page.
+; This is nearly identical to the main body of $67b except for which tables are used.
+; The purpose seems to be to use a louder triangle for sound effects.
 240: FC      mov  a,r4
 241: 6E      add  a,r6
 242: AC      mov  r4,a
@@ -1460,7 +1465,7 @@
 67C: 03 80   add  a,#$80
 67E: 62      mov  t,a
 
-67F: 76 A2   jf1  $6A2          ; skip to end if ??? (a rare condition, apparently)
+67F: 76 A2   jf1  $6A2          ; use routine at $240 instead if playing certain sound effects
 
 ; Start of loop.
 ; Timing is critical in this loop! Adding any instructions will lower the sampling rate and therefore the pitch.
@@ -1469,6 +1474,8 @@
 ; $6a0 - $681 + 2 = 34 cycles.
 ; This is a 6 MHz chip with an internal divisor of 15, so the instruction clock runs at 400 kHz.
 ; So the loop runs at 400,000 / 34 = 11765 Hz.
+; We spend a bit of time outside the loop every now and then, though,
+; so the actual playback rate is slightly lower.
 
 ; add channel B frequency to channel B counter
 681: FC      mov  a,r4
@@ -1506,7 +1513,7 @@
 699: D5      sel  rb1
 69A: 68      add  a,r0
 
-; Put the mixed output to the DAC
+; Send the mixed output to the DAC
 69B: 39      outl p1,a
 
 ; Return when timer fires; else loop back
@@ -1516,6 +1523,7 @@
 ; Done
 6A0: C5      sel  rb0
 6A1: 83      ret
+
 6A2: 44 40   jmp  $240
 
 ; Fetch from page 6
