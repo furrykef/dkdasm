@@ -717,6 +717,7 @@
 2F0:  50 4B 46 41 3C 37 32 2D 28 23 1E 19 14 0F 0A 05
 
 
+; Songdata
 300:  00 2A 80 1C 84 0E 88 8A 88 00 16 84 0B 84 84 00
 310:  00 18 84 0C 80 80 00 10 B8 B4 B0 00 12 90 09 90
 320:  90 12 90 90 94 90 94 90 94 09 94 94 12 94 94 98
@@ -733,206 +734,32 @@
 3D0:  82 EC 88 82 F0 90 88 EC 88 82 10 84 AA E8 8C AA
 3E0:  20 E7 92 8A 10 84 A4 E2 8C A4 00 1B E2 88 09 A4
 3F0:  12 82 A8 12 88 A4 E2 82 A4 12 E0 80 09 82 83 86
+400:  88 8A 8C 24 D0 88 00 20 80 DC 98 E0 9A E2 9C 20
+410:  90 E4 88 10 E3 90 A4 20 88 DA 8A EA 84 10 E8 8A
+420:  A4 20 84 E2 82 E2 87 16 E8 88 0A A3 10 E4 82 A0
+430:  15 C8 80 2B CA 83 40 CB 80 00 10 E8 A4 E8 A4 E6
+440:  A2 E6 A2 E4 A0 E4 A0 E2 9C E2 9C 10 E0 90 A0 E4
+450:  88 A0 E4 80 A0 E4 88 A8 20 EA 96 E8 90 40 F0 80
+460:  00 10 E8 A4 E8 A4 E6 A2 E6 A2 E4 A0 E4 A0 E2 9C
+470:  E2 9C 20 E0 90 10 88 08 A0 A2 20 E4 90 E0 88 20
+480:  E2 92 10 8A 08 A2 A4 20 E6 92 E2 8A 20 E8 88 10
+490:  82 A8 EA 88 A8 E6 82 A4 E8 80 2B 83 40 80 00 0A
+4A0:  E8 A4 EA A6 14 EC A8 28 E8 A4 0A E8 A4 EA A6 14
+4B0:  EC A8 28 E8 A4 00 0A E0 98 E0 98 3C E0 98 12 88
+4C0:  84 88 84 88 84 88 84 88 84 88 84 00
 
-
-400: 88      db   $88
-401: 8A 8C   orl  p2,#$8C
-403: 24 D0   jmp  $1D0
-405: 88 00   orl  bus,#$00
-407: 20      xch  a,@r0
-408: 80      movx a,@r0
-409: DC      xrl  a,r4
-40A: 98 E0   anl  bus,#$E0
-40C: 9A E2   anl  p2,#$E2
-40E: 9C      anld p4,a
-40F: 20      xch  a,@r0
-410: 90      movx @r0,a
-411: E4 88   jmp  $788
-413: 10      inc  @r0
-414: E3      movp3 a,@a
-415: 90      movx @r0,a
-416: A4 20   jmp  $520
-418: 88 DA   orl  bus,#$DA
-41A: 8A EA   orl  p2,#$EA
-41C: 84 10   jmp  $410
-41E: E8 8A   djnz r0,$48A
-420: A4 20   jmp  $520
-422: 84 E2   jmp  $4E2
-424: 82      illegal
-425: E2      illegal
-426: 87      illegal
-427: 16 E8   jtf  $4E8
-429: 88 0A   orl  bus,#$0A
-42B: A3      movp a,@a
-42C: 10      inc  @r0
-42D: E4 82   jmp  $782
-42F: A0      mov  @r0,a
-430: 15      dis  i
-431: C8      dec  r0
-432: 80      movx a,@r0
-433: 2B      xch  a,r3
-434: CA      dec  r2
-435: 83      ret
-436: 40      orl  a,@r0
-437: CB      dec  r3
-438: 80      movx a,@r0
-439: 00      nop
-43A: 10      inc  @r0
-43B: E8 A4   djnz r0,$4A4
-43D: E8 A4   djnz r0,$4A4
-43F: E6 A2   jnc  $4A2
-441: E6 A2   jnc  $4A2
-443: E4 A0   jmp  $7A0
-445: E4 A0   jmp  $7A0
-447: E2      illegal
-448: 9C      anld p4,a
-449: E2      illegal
-44A: 9C      anld p4,a
-44B: 10      inc  @r0
-44C: E0      illegal
-44D: 90      movx @r0,a
-44E: A0      mov  @r0,a
-44F: E4 88   jmp  $788
-451: A0      mov  @r0,a
-452: E4 80   jmp  $780
-454: A0      mov  @r0,a
-455: E4 88   jmp  $788
-457: A8      mov  r0,a
-458: 20      xch  a,@r0
-459: EA 96   djnz r2,$496
-45B: E8 90   djnz r0,$490
-45D: 40      orl  a,@r0
-45E: F0      mov  a,@r0
-45F: 80      movx a,@r0
-460: 00      nop
-461: 10      inc  @r0
-462: E8 A4   djnz r0,$4A4
-464: E8 A4   djnz r0,$4A4
-466: E6 A2   jnc  $4A2
-468: E6 A2   jnc  $4A2
-46A: E4 A0   jmp  $7A0
-46C: E4 A0   jmp  $7A0
-46E: E2      illegal
-46F: 9C      anld p4,a
-470: E2      illegal
-471: 9C      anld p4,a
-472: 20      xch  a,@r0
-473: E0      illegal
-474: 90      movx @r0,a
-475: 10      inc  @r0
-476: 88 08   orl  bus,#$08
-478: A0      mov  @r0,a
-479: A2      illegal
-47A: 20      xch  a,@r0
-47B: E4 90   jmp  $790
-47D: E0      illegal
-47E: 88 20   orl  bus,#$20
-480: E2      illegal
-481: 92 10   jb4  $410
-483: 8A 08   orl  p2,#$08
-485: A2      illegal
-486: A4 20   jmp  $520
-488: E6 92   jnc  $492
-48A: E2      illegal
-48B: 8A 20   orl  p2,#$20
-48D: E8 88   djnz r0,$488
-48F: 10      inc  @r0
-490: 82      illegal
-491: A8      mov  r0,a
-492: EA 88   djnz r2,$488
-494: A8      mov  r0,a
-495: E6 82   jnc  $482
-497: A4 E8   jmp  $5E8
-499: 80      movx a,@r0
-49A: 2B      xch  a,r3
-49B: 83      ret
-49C: 40      orl  a,@r0
-49D: 80      movx a,@r0
-49E: 00      nop
-49F: 0A      in   a,p2
-4A0: E8 A4   djnz r0,$4A4
-4A2: EA A6   djnz r2,$4A6
-4A4: 14 EC   call $0EC
-4A6: A8      mov  r0,a
-4A7: 28      xch  a,r0
-4A8: E8 A4   djnz r0,$4A4
-4AA: 0A      in   a,p2
-4AB: E8 A4   djnz r0,$4A4
-4AD: EA A6   djnz r2,$4A6
-4AF: 14 EC   call $0EC
-4B1: A8      mov  r0,a
-4B2: 28      xch  a,r0
-4B3: E8 A4   djnz r0,$4A4
-4B5: 00      nop
-4B6: 0A      in   a,p2
-4B7: E0      illegal
-4B8: 98 E0   anl  bus,#$E0
-4BA: 98 3C   anl  bus,#$3C
-4BC: E0      illegal
-4BD: 98 12   anl  bus,#$12
-4BF: 88 84   orl  bus,#$84
-4C1: 88 84   orl  bus,#$84
-4C3: 88 84   orl  bus,#$84
-4C5: 88 84   orl  bus,#$84
-4C7: 88 84   orl  bus,#$84
-4C9: 88 84   orl  bus,#$84
-4CB: 00      nop
-4CC: FF
-4CD: FF
-4CE: FF
-4CF: FF
-4D0: FF
-4D1: FF
-4D2: FF
-4D3: FF
-4D4: FF
-4D5: FF
-4D6: FF
-4D7: FF
-4D8: FF
-4D9: FF
-4DA: FF
-4DB: FF
-4DC: FF
-4DD: FF
-4DE: FF
-4DF: FF
-4E0: FF
-4E1: FF
-4E2: FF
-4E3: FF
-4E4: FF
-4E5: FF
-4E6: FF
-4E7: FF
-4E8: FF
-4E9: FF
-4EA: FF
-4EB: FF
-4EC: FF
-4ED: FF
-4EE: FF
-4EF: FF
-4F0: FF
-4F1: FF
-4F2: FF
-4F3: FF
-4F4: FF
-4F5: FF
-4F6: FF
-4F7: FF
+; junk
+4CC:  FF FF FF FF
+4D0:  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+4E0:  FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF FF
+4F0:  FF FF FF FF FF FF FF FF
 
 ; Fetch from page 4
 4F8: A3      movp a,@a
 4F9: 83      ret
 
 ; junk
-4FA: FF
-4FB: FF
-4FC: FF
-4FD: FF
-4FE: FF
-4FF: FF
+4FA: FF FF FF FF FF FF
 
 
 ; Song table
@@ -969,7 +796,7 @@
 ; Playlist table for $57d songs 
 ; -----------------------------
 ; For instance, $516 will play patterns $14, $83, $fe, etc. until it hits $00.
-; FE 85 FE 85 FE 00 indicates a gorilla roar
+; FE 85 FE 85 FE 00 plays three gorilla roars
 510: 10      db $10             ; How high can you get?
 511: 00      db $00
 512: 13      db $13             ; Rescued Pauline (even level)
@@ -992,7 +819,7 @@
 ; $522 through $52a seem to be unused
 520: 0A      db $0a             ; DK climbs ladder
 521: 00      db $00
-522: 95      db $95             ; unused???
+522: 95      db $95             ; unused
 523: FE      db $fe
 524: 85      db $85
 525: FE      db $fe
@@ -1209,44 +1036,60 @@
 616: 4746
 618: 4B83
 
+; Start playing a pattern
+; In: r0 = pattern ID
 61A: BB 00   mov  r3,#$00
 61C: B9 30   mov  r1,#$30
 61E: B1 FF   mov  @r1,#$FF
-620: D4 27   call $627
-622: 96 20   jnz  $620
-624: E8 20   djnz r0,$620
+
+; Skip songs until r3 points to the song we want.
+; Skip N songs, where N is r0.
+; $00 indicates end of song, so we loop until we've counted that N nulls.
+620: D4 27   call $627          ; fetch byte from songdata
+622: 96 20   jnz  $620          ; keep reading until we hit end-of-song
+624: E8 20   djnz r0,$620       ; repeat until we've skipped N songs
 626: 83      ret
 
-627: B9 30   mov  r1,#$30
+; Fetch a byte from the songdata
+; In:
+;   r3 = pointer to song data
+;   $30 = page selector. r3 points to page 3 if zero, else page 4
+; Out:
+;   A = fetched byte
+627: B9 30   mov  r1,#$30       ; r1 = address of page selector
+
+; The pointer in r3 will be zero in two cases. Either we have yet to fetch any data or we hit the end of page 3.
+; In the former case, $30 will be $ff, so it will be incremented to $00, meaning r3 points to page 3.
+; Otherwise, it will be incremented to $01, meaning r3 points to page 4.
 629: FB      mov  a,r3
 62A: 96 2D   jnz  $62D
-62C: 11      inc  @r1
-62D: F1      mov  a,@r1
-62E: 96 34   jnz  $634
-630: FB      mov  a,r3
+62C: 11      inc  @r1           ; increment page selector
+
+62D: F1      mov  a,@r1         ; if page selector is zero...
+62E: 96 34   jnz  $634          ; ...then use page 4 and return
+630: FB      mov  a,r3          ; else use page 3 and return
 631: 1B      inc  r3
 632: E3      movp3 a,@a
 633: 83      ret
-
 634: FB      mov  a,r3
 635: 1B      inc  r3
 636: 84 F8   jmp  $4F8          ; fetch from page 4 and return
 
-638: D4 27   call $627
-63A: C6 5C   jz   $65C
+638: D4 27   call $627          ; fetch byte from songdata
+63A: C6 5C   jz   $65C          ; return if zero
 63C: F2 46   jb7  $646
 63E: AA      mov  r2,a
 63F: D4 27   call $627
 641: F2 46   jb7  $646
 643: A9      mov  r1,a
-644: D4 27   call $627
+644: D4 27   call $627          ; fetch byte from songdata
 646: A8      mov  r0,a
-647: D4 5D   call $65D
+647: D4 5D   call $65D          ; get frequency of note
 649: F8      mov  a,r0
 64A: 83      ret
 
-64B: D2 54   jb6  $654          ; if bit 6 set, jump (@TODO@ -- why?)
-64D: D5      sel  rb1           ; else clear channel B frequency
+64B: D2 54   jb6  $654          ; If channel B flag set, jump
+64D: D5      sel  rb1           ; Else silence channel B
 64E: BE 00   mov  r6,#$00
 650: BF 00   mov  r7,#$00
 652: C5      sel  rb0
