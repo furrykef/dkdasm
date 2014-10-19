@@ -19,10 +19,10 @@
 ;
 ; P2 writes
 ; ---------
-; Bit 7: decay for volume envelopes if clear
+; Bit 7: reset decay for volume envelopes if set (keep on for no decay)
 ; Bit 6: if clear, External Data Memory reads compressed sample ROM
 ; Bit 5: seems unused
-; Bit 4: "status code to main cpu" (according to MAME)
+; Bit 4: "status code to main cpu" (according to MAME) -- I don't think the game uses this (@TODO@ -- verify)
 ; Bits 2-0: Selects 256-byte page for sample ROM reads
 ;
 ; An external interrupt will play the death music.
@@ -62,6 +62,8 @@
 ; To convert frequency in Hz to our frequency value, multiply by 65536/11765 = 5.5704.
 ; So if you want to play a 440 Hz tone, the number stored would be 440*5.5704 = 2450 = $992.
 ; To convert from frequency values to Hz, divide by 5.5704. 2450 / 5.5704 = 439.82.
+;
+; There is no per-channel volume control. The DAC itself applies volume envelopes; see description of P2.
 ;
 ; Sound channel registers (RB0 = channel A; RB1 = channel B):
 ;   * r4: counter LSB
@@ -425,18 +427,18 @@
 14E: C5      sel  rb0
 14F: B4 33   call $533          ; fetch from page 5
 151: C6 9E   jz   $19E          ; return if hit end of playlist
-153: F2 9F   jb7  $19F
+153: F2 9F   jb7  $19F          ; return if pattern is digital sample
 155: A8      mov  r0,a
 156: D4 1A   call $61A
 158: D4 38   call $638
 15A: D4 4B   call $64B
-15C: C6 4B   jz   $14B
+15C: C6 4B   jz   $14B          ; loop back if zero
 15E: B9 03   mov  r1,#$03       ; loop three times
-160: 8A 80   orl  p2,#$80
+160: 8A 80   orl  p2,#$80       ; reset decay
 162: 34 3F   call $13F          ; do something with channel A (@TODO@)
 164: D5      sel  rb1           ; set channel B
 165: 34 3F   call $13F          ; do something with channel B (@TODO@)
-167: D4 7B   call $67B
+167: D4 7B   call $67B          ; output sound
 169: E9 62   djnz r1,$162       ; loop
 16B: B9 04   mov  r1,#$04       ; call $67b four times
 16D: D5      sel  rb1
@@ -446,7 +448,7 @@
 173: 03 F9   add  a,#$F9
 175: A9      mov  r1,a
 176: C6 58   jz   $158
-178: 9A 7F   anl  p2,#$7F
+178: 9A 7F   anl  p2,#$7F       ; enable decay
 17A: D5      sel  rb1
 17B: D4 7B   call $67B
 17D: E9 7A   djnz r1,$17A
@@ -714,183 +716,26 @@
 2E0:  9F 9B 96 91 8C 87 82 7D 78 73 6E 69 64 5F 5A 55
 2F0:  50 4B 46 41 3C 37 32 2D 28 23 1E 19 14 0F 0A 05
 
-300: 00      nop
-301: 2A      xch  a,r2
-302: 80      movx a,@r0
-303: 1C      inc  r4
-304: 84 0E   jmp  $40E
-306: 88 8A   orl  bus,#$8A
-308: 88 00   orl  bus,#$00
-30A: 16 84   jtf  $384
-30C: 0B      illegal
-30D: 84 84   jmp  $484
-30F: 00      nop
-310: 00      nop
-311: 18      inc  r0
-312: 84 0C   jmp  $40C
-314: 80      movx a,@r0
-315: 80      movx a,@r0
-316: 00      nop
-317: 10      inc  @r0
-318: B8 B4   mov  r0,#$B4
-31A: B0 00   mov  @r0,#$00
-31C: 12 90   jb0  $390
-31E: 09      in   a,p1
-31F: 90      movx @r0,a
-320: 90      movx @r0,a
-321: 12 90   jb0  $390
-323: 90      movx @r0,a
-324: 94 90   call $490
-326: 94 90   call $490
-328: 94 09   call $409
-32A: 94 94   call $494
-32C: 12 94   jb0  $394
-32E: 94 98   call $498
-330: 94 98   call $498
-332: 94 00   call $400
-334: 00      nop
-335: 09      in   a,p1
-336: B0 B2   mov  @r0,#$B2
-338: B4 12   call $512
-33A: BA B6   mov  r2,#$B6
-33C: 00      nop
-33D: 0E      movd a,p6
-33E: A4 1C   jmp  $51C
-340: E8 90   djnz r0,$390
-342: D8      xrl  a,r0
-343: 88 38   orl  bus,#$38
-345: E0      illegal
-346: 80      movx a,@r0
-347: 00      nop
-348: 60      add  a,@r0
-349: CA      dec  r2
-34A: 82      illegal
-34B: 20      xch  a,@r0
-34C: CC      dec  r4
-34D: 84 40   jmp  $440
-34F: D0      xrl  a,@r0
-350: 86 CA   jni  $3CA
-352: 82      illegal
-353: 08      in   a,bus
-354: DA      xrl  a,r2
-355: 89 D9   orl  p1,#$D9
-357: 89 DA   orl  p1,#$DA
-359: 89 D9   orl  p1,#$D9
-35B: 89 DA   orl  p1,#$DA
-35D: 89 D9   orl  p1,#$D9
-35F: 89 DA   orl  p1,#$DA
-361: 89 D9   orl  p1,#$D9
-363: 89 08   orl  p1,#$08
-365: DA      xrl  a,r2
-366: 89 D9   orl  p1,#$D9
-368: 89 DA   orl  p1,#$DA
-36A: 89 D9   orl  p1,#$D9
-36C: 89 DA   orl  p1,#$DA
-36E: 89 D9   orl  p1,#$D9
-370: 89 DA   orl  p1,#$DA
-372: 89 D9   orl  p1,#$D9
-374: 89 7F   orl  p1,#$7F
-376: DA      xrl  a,r2
-377: 8A 00   orl  p2,#$00
-379: 00      nop
-37A: 24 88   jmp  $188
-37C: 82      illegal
-37D: 88 82   orl  bus,#$82
-37F: 12 D8   jb0  $3D8
-381: 88 D6   orl  bus,#$D6
-383: 88 D8   orl  bus,#$D8
-385: 82      illegal
-386: D6      illegal
-387: 82      illegal
-388: D6      illegal
-389: 88 88   orl  bus,#$88
-38B: D6      illegal
-38C: 82      illegal
-38D: 82      illegal
-38E: 24 DA   jmp  $1DA
-390: 87      illegal
-391: D9      xrl  a,r1
-392: 83      ret
-393: DA      xrl  a,r2
-394: 87      illegal
-395: D7      mov  psw,a
-396: 83      ret
-397: 09      in   a,p1
-398: D8      xrl  a,r0
-399: 88 D7   orl  bus,#$D7
-39B: 88 D8   orl  bus,#$D8
-39D: 88 D7   orl  bus,#$D7
-39F: 88 D8   orl  bus,#$D8
-3A1: 82      illegal
-3A2: D7      mov  psw,a
-3A3: 82      illegal
-3A4: D8      xrl  a,r0
-3A5: 82      illegal
-3A6: D7      mov  psw,a
-3A7: 82      illegal
-3A8: 48      orl  a,r0
-3A9: D8      xrl  a,r0
-3AA: 88 00   orl  bus,#$00
-3AC: 00      nop
-3AD: 00      nop
-3AE: 20      xch  a,@r0
-3AF: E8 88   djnz r0,$388
-3B1: 82      illegal
-3B2: E2      illegal
-3B3: 88 10   orl  bus,#$10
-3B5: 82      illegal
-3B6: A4 20   jmp  $520
-3B8: DC      xrl  a,r4
-3B9: 88 82   orl  bus,#$82
-3BB: 84 18   jmp  $418
-3BD: E0      illegal
-3BE: 87      illegal
-3BF: 08      in   a,bus
-3C0: A2      illegal
-3C1: 20      xch  a,@r0
-3C2: E4 88   jmp  $788
-3C4: E7      rl   a
-3C5: 82      illegal
-3C6: E8 88   djnz r0,$388
-3C8: EA 82   djnz r2,$382
-3CA: 20      xch  a,@r0
-3CB: EA 88   djnz r2,$388
-3CD: EC 82   djnz r4,$382
-3CF: 88 82   orl  bus,#$82
-3D1: EC 88   djnz r4,$388
-3D3: 82      illegal
-3D4: F0      mov  a,@r0
-3D5: 90      movx @r0,a
-3D6: 88 EC   orl  bus,#$EC
-3D8: 88 82   orl  bus,#$82
-3DA: 10      inc  @r0
-3DB: 84 AA   jmp  $4AA
-3DD: E8 8C   djnz r0,$38C
-3DF: AA      mov  r2,a
-3E0: 20      xch  a,@r0
-3E1: E7      rl   a
-3E2: 92 8A   jb4  $38A
-3E4: 10      inc  @r0
-3E5: 84 A4   jmp  $4A4
-3E7: E2      illegal
-3E8: 8C      orld p4,a
-3E9: A4 00   jmp  $500
-3EB: 1B      inc  r3
-3EC: E2      illegal
-3ED: 88 09   orl  bus,#$09
-3EF: A4 12   jmp  $512
-3F1: 82      illegal
-3F2: A8      mov  r0,a
-3F3: 12 88   jb0  $388
-3F5: A4 E2   jmp  $5E2
-3F7: 82      illegal
-3F8: A4 12   jmp  $512
-3FA: E0      illegal
-3FB: 80      movx a,@r0
-3FC: 09      in   a,p1
-3FD: 82      illegal
-3FE: 83      ret
-3FF: 86 88   jni  $388
+
+300:  00 2A 80 1C 84 0E 88 8A 88 00 16 84 0B 84 84 00
+310:  00 18 84 0C 80 80 00 10 B8 B4 B0 00 12 90 09 90
+320:  90 12 90 90 94 90 94 90 94 09 94 94 12 94 94 98
+330:  94 98 94 00 00 09 B0 B2 B4 12 BA B6 00 0E A4 1C
+340:  E8 90 D8 88 38 E0 80 00 60 CA 82 20 CC 84 40 D0
+350:  86 CA 82 08 DA 89 D9 89 DA 89 D9 89 DA 89 D9 89
+360:  DA 89 D9 89 08 DA 89 D9 89 DA 89 D9 89 DA 89 D9
+370:  89 DA 89 D9 89 7F DA 8A 00 00 24 88 82 88 82 12
+380:  D8 88 D6 88 D8 82 D6 82 D6 88 88 D6 82 82 24 DA
+390:  87 D9 83 DA 87 D7 83 09 D8 88 D7 88 D8 88 D7 88
+3A0:  D8 82 D7 82 D8 82 D7 82 48 D8 88 00 00 00 20 E8
+3B0:  88 82 E2 88 10 82 A4 20 DC 88 82 84 18 E0 87 08
+3C0:  A2 20 E4 88 E7 82 E8 88 EA 82 20 EA 88 EC 82 88
+3D0:  82 EC 88 82 F0 90 88 EC 88 82 10 84 AA E8 8C AA
+3E0:  20 E7 92 8A 10 84 A4 E2 8C A4 00 1B E2 88 09 A4
+3F0:  12 82 A8 12 88 A4 E2 82 A4 12 E0 80 09 82 83 86
+
+
+400: 88      db   $88
 401: 8A 8C   orl  p2,#$8C
 403: 24 D0   jmp  $1D0
 405: 88 00   orl  bus,#$00
@@ -1181,17 +1026,17 @@
 
 ; Check whether this the tune is already playing
 ; (i.e., compare $20 with the song ID we're about to put in $20)
-53C: 20      xch  a,@r0         ; fetch previous value as we store the new one
-53D: 37      cpl  a             ; invert previous value
+53C: 20      xch  a,@r0         ; fetch old value as we store the new one
+53D: 37      cpl  a             ; invert old value
 53E: 17      inc  a
 53F: 60      add  a,@r0
-540: 96 64   jnz  $564          ; $20 != previous value of $20; the song has changed
+540: 96 64   jnz  $564          ; $20 != old value of $20; the song has changed
 
 ; The song has not changed; continue current song
 542: B6 BD   jf0  $5BD          ; if F0, continue fall noise
 544: 46 BA   jnt1 $5BA          ; if T1, start fall noise
 546: F0      mov  a,@r0         ; get the song ID again
-547: A3      movp a,@a
+547: A3      movp a,@a          ; look up playlist at $500
 548: C6 5D   jz   $55D          ; if zero (silence), go to $67B
 54A: F2 5F   jb7  $55F          ; jump if "rivet removed"
 54C: 34 3F   call $13F
@@ -1221,7 +1066,7 @@
 565: A3      movp a,@a
 566: C6 5F   jz   $55F          ; go to $55f if 'song' is silence
 568: F2 8C   jb7  $58C          ; "rivet removed" jingle
-56A: 92 7D   jb4  $57D          ; various intermission music
+56A: 92 7D   jb4  $57D          ; music using volume envelopes
 56C: B2 81   jb5  $581          ; DK climbs ladder or DK roars
 56E: D2 E5   jb6  $5E5          ; hammer hit
 
@@ -1285,6 +1130,7 @@
 5B6: F4 06   call $706
 5B8: A4 95   jmp  $595
 
+
 ; Play fall noise
 ; ---------------
 5BA: 95      cpl  f0
@@ -1346,33 +1192,22 @@
 5FE: FF      mov  a,r7
 5FF: FF      mov  a,r7
 
-; chunk o' data
-600: 28
-601: 00
-602: 2A
-603: 61
-604: 2C
-605: E6
-606: 2F
-607: 91
-608: 32
-609: 66
-60A: FF
-60B: FF
-60C: 35
-60D: 65
-60E: 38
-60F: 92
-610: 3B
-611: EF
-612: 3F
-613: 75
-614: 43
-615: 46
-616: 47
-617: 46
-618: 4B
-619: 83
+; Frequency table used by routine at $65d
+; These seem to be the 12 notes of an octave
+; Note that these are big endian!
+600: 2800
+602: 2A61
+604: 2CE6
+606: 2F91
+608: 3266
+60A: FFFF
+60C: 3565
+60E: 3892
+610: 3BEF
+612: 3F75
+614: 4346
+616: 4746
+618: 4B83
 
 61A: BB 00   mov  r3,#$00
 61C: B9 30   mov  r1,#$30
@@ -1396,6 +1231,7 @@
 634: FB      mov  a,r3
 635: 1B      inc  r3
 636: 84 F8   jmp  $4F8          ; fetch from page 4 and return
+
 638: D4 27   call $627
 63A: C6 5C   jz   $65C
 63C: F2 46   jb7  $646
@@ -1409,35 +1245,42 @@
 649: F8      mov  a,r0
 64A: 83      ret
 
-64B: D2 54   jb6  $654
-64D: D5      sel  rb1
+64B: D2 54   jb6  $654          ; if bit 6 set, jump (@TODO@ -- why?)
+64D: D5      sel  rb1           ; else clear channel B frequency
 64E: BE 00   mov  r6,#$00
 650: BF 00   mov  r7,#$00
 652: C5      sel  rb0
 653: 83      ret
 
-654: D4 27   call $627
+654: D4 27   call $627          ; fetch note to play
 656: D5      sel  rb1
 657: A8      mov  r0,a
-658: D4 5D   call $65D
+658: D4 5D   call $65D          ; get frequency of note
 65A: C5      sel  rb0
-65B: F8      mov  a,r0
+65B: F8      mov  a,r0          ; put note ID back in A
 65C: 83      ret
 
-65D: F8      mov  a,r0
-65E: 53 0F   anl  a,#$0F
-660: E7      rl   a
+; In: r0 = note ID
+65D: F8      mov  a,r0          ; get note ID
+65E: 53 0F   anl  a,#$0F        ; low nybble is the table index
+660: E7      rl   a             ; indexing into 16-bit table
 661: AC      mov  r4,a
-662: A3      movp a,@a
+662: A3      movp a,@a          ; load frequency MSB
 663: AF      mov  r7,a
-664: FC      mov  a,r4
+664: FC      mov  a,r4          ; get note ID back
 665: 17      inc  a
-666: A3      movp a,@a
+666: A3      movp a,@a          ; load frequency LSB
 667: AE      mov  r6,a
 668: F8      mov  a,r0
+
+; Loop N times where N is the first two bits of high nybble
+; (This chooses the octave)
 669: 53 30   anl  a,#$30
 66B: 47      swap a
 66C: AC      mov  r4,a
+
+; Start of loop
+; This loop divides the frequency by N
 66D: FF      mov  a,r7
 66E: 97      clr  c
 66F: 67      rrc  a
@@ -1446,13 +1289,14 @@
 672: 67      rrc  a
 673: AE      mov  r6,a
 674: 1C      inc  r4
-675: FC      mov  a,r4
+675: FC      mov  a,r4          ; r4 == 4?
 676: 03 FC   add  a,#$FC
-678: 96 6D   jnz  $66D
+678: 96 6D   jnz  $66D          ; loop if not
 67A: 83      ret
 
-; Play channels
-; -------------
+
+; Mixer
+; -----
 ; This is the primary routine used to output channels A and B -- the music engine's inner loop.
 ; It plays a few samples, then returns after a timer fires to give the rest of the music engine a chance to run.
 ;
