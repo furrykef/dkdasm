@@ -46,7 +46,26 @@
 ; The value read from $20 is the value written to REG_MUSIC in the main program, but with the lower four bits inverted.
 ; So if the Z80 writes 02 to REG_MUSIC, the i8035 will get 0D on at $20.
 ;
-; $20 is sometimes written to. I don't know what this does and it may do nothing.
+; $20 is sometimes written to. I don't know what this does and it may do nothing. (@TODO@ -- find out for sure)
+;
+; Sound channels
+; --------------
+; Most of the music and sound effects use two sound channels. We'll call them A and B.
+; During play, channel B is used for sound effects, while channel A is used for music.
+; Outside of play, both are used for music.
+; Both channels use wavetables. Which tables are used depends on the routine, but they're all triangle waves.
+;
+; These channels are played by a loop that runs at about 11,764 Hz.
+;
+; To convert frequency in Hz to our frequency value, multiply by 65536/11765 = 5.5704.
+; So if you want to play a 440 Hz tone, the number stored would be 440*5.5704 = 2450 = $992.
+; To convert from frequency values to Hz, divide by 5.5704. 2450 / 5.5704 = 439.82.
+;
+; Sound channel registers (RB0 = channel A; RB1 = channel B):
+;   * r4: counter LSB
+;   * r5: counter MSB
+;   * r6: frequency LSB
+;   * r7: frequency MSB
 ;
 ; Glossary
 ; --------
@@ -55,14 +74,10 @@
 ; XDM: External Data Memory (used by MOVX)
 ; r0': r0 prime (r0 in RB1 as opposed to RB0)
 ;
-; Notes
-; -----
+; Miscellaneous
+; -------------
 ; The program is remarkably stable. You can play with regs or vars all you like in the debugger, and it will often correct itself.
 ; If it doesn't, setting PC = 0 should be sufficient to get it to behave normally again.
-;
-; TODO
-; ----
-; There's unused music in here!! It will sometimes play when setting PC to $57d.
 ;
 ; Music patterns to document in appropriate places
 ; ------------------------------------------------
@@ -1447,8 +1462,15 @@
 
 67F: 76 A2   jf1  $6A2          ; skip to end if ??? (a rare condition, apparently)
 
-; start of loop
-; add r6' and r7' (channel B frequency) to r4' and r5' (this is a 16-bit add)
+; Start of loop.
+; Timing is critical in this loop! Adding any instructions will lower the sampling rate and therefore the pitch.
+; Since instructions take one cycle per byte, with three exceptions, the number of cycles taken
+; will be the address of the end of the loop minus the address after the end of the loop plus two.
+; $6a0 - $681 + 2 = 34 cycles.
+; This is a 6 MHz chip with an internal divisor of 15, so the instruction clock runs at 400 kHz.
+; So the loop runs at 400,000 / 34 = 11765 Hz.
+
+; add channel B frequency to channel B counter
 681: FC      mov  a,r4
 682: 6E      add  a,r6
 683: AC      mov  r4,a
@@ -1456,11 +1478,10 @@
 685: 7F      addc a,r7
 686: AD      mov  r5,a
 
-; A = 0xc0 | (A >> 2)
 ; This is to index into the wavetable at $6c0
-687: 77      rr   a
+687: 77      rr   a             ; A >>= 2 (A will have highest 6 bits of counter)
 688: 77      rr   a
-689: 43 C0   orl  a,#$C0
+689: 43 C0   orl  a,#$C0        ; The table is based at $6c0
 68B: A3      movp a,@a
 
 ; A now contains the output sample from channel B.
@@ -1468,6 +1489,7 @@
 68C: A8      mov  r0,a
 
 ; Repeat everything we just did, but in RB0
+; (Thus doing it for channel A)
 68D: C5      sel  rb0
 68E: FC      mov  a,r4
 68F: 6E      add  a,r6
@@ -1484,9 +1506,14 @@
 699: D5      sel  rb1
 69A: 68      add  a,r0
 
-69B: 39      outl p1,a          ; output to DAC
-69C: 16 A0   jtf  $6A0          ; return when timer fires
-69E: C4 81   jmp  $681          ; loop back
+; Put the mixed output to the DAC
+69B: 39      outl p1,a
+
+; Return when timer fires; else loop back
+69C: 16 A0   jtf  $6A0
+69E: C4 81   jmp  $681
+
+; Done
 6A0: C5      sel  rb0
 6A1: 83      ret
 6A2: 44 40   jmp  $240
