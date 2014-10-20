@@ -83,32 +83,9 @@
 ; The program is remarkably stable. You can play with regs or vars all you like in the debugger, and it will often correct itself.
 ; If it doesn't, setting PC = 0 should be sufficient to get it to behave normally again.
 ;
-; Music patterns to document in appropriate places
-; ------------------------------------------------
-; 00: none
-; 01: 25m music
-; 02: 50m music? (seems to glitch)
-; 03: nothing?
-; 04: 100m music?
-; 05: running out of time
-; 06: hammer time
-; 07: nothing?
-; 08: scored points
-; 09: melodic part of death music
-; 0a: DK climbing ladders
-; 0b: nothing?
-; 0c: unused mischievous cutscene music
-; 0d: nothing?
-; 0e: nothing?
-; 0f: unused happy cutscene music
-; 10: How high can you get?
-; 11: Rescued Pauline (odd level)
-; 12: Rescued Pauline (unused variant)
-; 13: Rescued Pauline (even level)
-; 14: Completed non-rivet stage
-; 15: DK is about to fall
-; 16: (glitchy crap)
-; 17-7f: seem to just repeat 10-16 over and over
+; Patterns to document in appropriate places
+; ------------------------------------------
+; 00-15: music patterns using the pattern data in $300-4ff
 ; 80-ff: has to do with digital audio samples
 ;   * fa: unused "Nice!" sample
 ;   * fc: unused "Help!" sample
@@ -349,6 +326,7 @@
 0FF: FF
 
 ; Called from death music routine
+; plays a single note of the SFX part
 100: B8 03   mov  r0,#$03       ; call $123 three times
 102: 34 23   call $123
 104: E8 02   djnz r0,$102
@@ -357,9 +335,9 @@
 10A: E8 08   djnz r0,$108
 10C: 83      ret
 
-; called from routine at $100
-; this appears to play silence for a short time
-10D: 27      clr  a             ; silence channels A and B
+; Silence channels A and B
+; ------------------------
+10D: 27      clr  a
 10E: AE      mov  r6,a
 10F: AF      mov  r7,a
 110: D5      sel  rb1
@@ -407,6 +385,7 @@
 
 ; @TODO@ - I'm not sure what the point of this routine is.
 ; Dummy it out and the music plays in a lower key, but is otherwise fine.
+; Maybe it's meant to compensate for a change in playback rate??
 13F: FE      mov  a,r6
 140: 6F      add  a,r7
 141: E6 44   jnc  $144
@@ -711,42 +690,100 @@
 2BF: FF
 
 ; Triangle wavetable, louder than others. Used by routine at $240
-2C0:  00 05 0A 0F 14 19 1E 23 28 2D 32 37 3C 41 46 4B
-2D0:  50 55 5A 5F 64 69 6E 73 78 7D 82 87 8C 91 96 9B
-2E0:  9F 9B 96 91 8C 87 82 7D 78 73 6E 69 64 5F 5A 55
-2F0:  50 4B 46 41 3C 37 32 2D 28 23 1E 19 14 0F 0A 05
+2C0: 00 05 0A 0F 14 19 1E 23 28 2D 32 37 3C 41 46 4B
+2D0: 50 55 5A 5F 64 69 6E 73 78 7D 82 87 8C 91 96 9B
+2E0: 9F 9B 96 91 8C 87 82 7D 78 73 6E 69 64 5F 5A 55
+2F0: 50 4B 46 41 3C 37 32 2D 28 23 1E 19 14 0F 0A 05
 
 
-; Songdata
-300:  00 2A 80 1C 84 0E 88 8A 88 00 16 84 0B 84 84 00
-310:  00 18 84 0C 80 80 00 10 B8 B4 B0 00 12 90 09 90
-320:  90 12 90 90 94 90 94 90 94 09 94 94 12 94 94 98
-330:  94 98 94 00 00 09 B0 B2 B4 12 BA B6 00 0E A4 1C
-340:  E8 90 D8 88 38 E0 80 00 60 CA 82 20 CC 84 40 D0
-350:  86 CA 82 08 DA 89 D9 89 DA 89 D9 89 DA 89 D9 89
-360:  DA 89 D9 89 08 DA 89 D9 89 DA 89 D9 89 DA 89 D9
-370:  89 DA 89 D9 89 7F DA 8A 00 00 24 88 82 88 82 12
-380:  D8 88 D6 88 D8 82 D6 82 D6 88 88 D6 82 82 24 DA
-390:  87 D9 83 DA 87 D7 83 09 D8 88 D7 88 D8 88 D7 88
-3A0:  D8 82 D7 82 D8 82 D7 82 48 D8 88 00 00 00 20 E8
-3B0:  88 82 E2 88 10 82 A4 20 DC 88 82 84 18 E0 87 08
-3C0:  A2 20 E4 88 E7 82 E8 88 EA 82 20 EA 88 EC 82 88
-3D0:  82 EC 88 82 F0 90 88 EC 88 82 10 84 AA E8 8C AA
-3E0:  20 E7 92 8A 10 84 A4 E2 8C A4 00 1B E2 88 09 A4
-3F0:  12 82 A8 12 88 A4 E2 82 A4 12 E0 80 09 82 83 86
-400:  88 8A 8C 24 D0 88 00 20 80 DC 98 E0 9A E2 9C 20
-410:  90 E4 88 10 E3 90 A4 20 88 DA 8A EA 84 10 E8 8A
-420:  A4 20 84 E2 82 E2 87 16 E8 88 0A A3 10 E4 82 A0
-430:  15 C8 80 2B CA 83 40 CB 80 00 10 E8 A4 E8 A4 E6
-440:  A2 E6 A2 E4 A0 E4 A0 E2 9C E2 9C 10 E0 90 A0 E4
-450:  88 A0 E4 80 A0 E4 88 A8 20 EA 96 E8 90 40 F0 80
-460:  00 10 E8 A4 E8 A4 E6 A2 E6 A2 E4 A0 E4 A0 E2 9C
-470:  E2 9C 20 E0 90 10 88 08 A0 A2 20 E4 90 E0 88 20
-480:  E2 92 10 8A 08 A2 A4 20 E6 92 E2 8A 20 E8 88 10
-490:  82 A8 EA 88 A8 E6 82 A4 E8 80 2B 83 40 80 00 0A
-4A0:  E8 A4 EA A6 14 EC A8 28 E8 A4 0A E8 A4 EA A6 14
-4B0:  EC A8 28 E8 A4 00 0A E0 98 E0 98 3C E0 98 12 88
-4C0:  84 88 84 88 84 88 84 88 84 88 84 00
+; Pattern data
+; ------------
+; Pattern $00, empty
+300: 00
+
+; Pattern $01, barrels BGM
+301: 2A 80 1C 84 0E 88 8A 88 00
+
+; Pattern $02, pie factory BGM
+302: 16 84 0B 84 84 00
+
+; Pattern $03, empty
+310: 00
+
+; Pattern $04, rivets BGM
+311: 18 84 0C 80 80 00
+
+; Pattern $05, running out of time
+317: 10 B8 B4 B0 00
+
+; Pattern $06, hammer time
+31C: 12 90 09 90 90 12 90 90 94 90 94 90 94 09 94 94
+32C: 12 94 94 98 94 98 94 00
+
+; Pattern $07, empty
+334: 00
+
+; Pattern $08, scored points
+335: 09 B0 B2 B4 12 BA B6 00
+
+; Pattern $09, melodic part of death music
+33D: 0E A4 1C E8 90 D8 88 38 E0 80 00
+
+; Pattern $0a, DK climbing ladders
+348: 60 CA 82 20 CC 84 40 D0 86 CA 82 08 DA 89 D9 89
+358: DA 89 D9 89 DA 89 D9 89 DA 89 D9 89 08 DA 89 D9
+368: 89 DA 89 D9 89 DA 89 D9 89 DA 89 D9 89 7F DA 8A
+378: 00
+
+; Pattern $0b, empty
+379: 00
+
+; Pattern $0c, unused mischievous cutscene music
+37A: 24 88 82 88 82 12 D8 88 D6 88 D8 82 D6 82 D6 88
+38A: 88 D6 82 82 24 DA 87 D9 83 DA 87 D7 83 09 D8 88
+39A: D7 88 D8 88 D7 88 D8 82 D7 82 D8 82 D7 82 48 D8
+3AA: 88 00
+
+; Pattern $0d, empty
+3AC: 00
+
+; Pattern $0e, empty
+3AD: 00
+
+; Pattern $0f, unused happy cutscene music
+3AE: 20 E8 88 82 E2 88 10 82 A4 20 DC 88 82 84 18 E0
+3BE: 87 08 A2 20 E4 88 E7 82 E8 88 EA 82 20 EA 88 EC
+3CE: 82 88 82 EC 88 82 F0 90 88 EC 88 82 10 84 AA E8
+3DE: 8C AA 20 E7 92 8A 10 84 A4 E2 8C A4 00
+
+; Pattern $10, How High Can You Get?
+3EB: 1B E2 88 09 A4 12 82 A8 12 88 A4 E2 82 A4 12 E0
+3FB: 80 09 82 83 86 88 8A 8C 24 D0 88 00
+
+; Pattern $11, Rescued Pauline (odd level)
+407: 20 80 DC 98 E0 9A E2 9C 20 90 E4 88 10 E3 90 A4
+417: 20 88 DA 8A EA 84 10 E8 8A A4 20 84 E2 82 E2 87
+427: 16 E8 88 0A A3 10 E4 82 A0 15 C8 80 2B CA 83 40
+437: CB 80 00
+
+; Pattern $12, Rescued Pauline (unused variant)
+43A: 10 E8 A4 E8 A4 E6 A2 E6 A2 E4 A0 E4 A0 E2 9C E2
+44A: 9C 10 E0 90 A0 E4 88 A0 E4 80 A0 E4 88 A8 20 EA
+45A: 96 E8 90 40 F0 80 00
+
+; Pattern $13, Rescued Pauline (even level)
+461: 10 E8 A4 E8 A4 E6 A2 E6 A2 E4 A0 E4 A0 E2 9C E2
+471: 9C 20 E0 90 10 88 08 A0 A2 20 E4 90 E0 88 20 E2
+481: 92 10 8A 08 A2 A4 20 E6 92 E2 8A 20 E8 88 10 82
+491: A8 EA 88 A8 E6 82 A4 E8 80 2B 83 40 80 00
+
+; Pattern $14, completed rivet stage
+49F: 0A E8 A4 EA A6 14 EC A8 28 E8 A4 0A E8 A4 EA A6
+4AF: 14 EC A8 28 E8 A4 00
+
+; Pattern $15, DK is about to fall
+4B6: 0A E0 98 E0 98 3C E0 98 12 88 84 88 84 88 84 88
+4C6: 84 88 84 88 84 00
 
 ; junk
 4CC:  FF FF FF FF
@@ -1037,6 +1074,7 @@
 618: 4B83
 
 ; Start playing a pattern
+; -----------------------
 ; In: r0 = pattern ID
 61A: BB 00   mov  r3,#$00
 61C: B9 30   mov  r1,#$30
@@ -1045,12 +1083,14 @@
 ; Skip songs until r3 points to the song we want.
 ; Skip N songs, where N is r0.
 ; $00 indicates end of song, so we loop until we've counted that N nulls.
-620: D4 27   call $627          ; fetch byte from songdata
+620: D4 27   call $627          ; fetch byte from pattern data
 622: 96 20   jnz  $620          ; keep reading until we hit end-of-song
 624: E8 20   djnz r0,$620       ; repeat until we've skipped N songs
 626: 83      ret
 
-; Fetch a byte from the songdata
+
+; Fetch a byte from the pattern data
+; ----------------------------------
 ; In:
 ;   r3 = pointer to song data
 ;   $30 = page selector. r3 points to page 3 if zero, else page 4
@@ -1075,21 +1115,22 @@
 635: 1B      inc  r3
 636: 84 F8   jmp  $4F8          ; fetch from page 4 and return
 
-638: D4 27   call $627          ; fetch byte from songdata
+
+638: D4 27   call $627          ; fetch byte from pattern data
 63A: C6 5C   jz   $65C          ; return if zero
 63C: F2 46   jb7  $646
 63E: AA      mov  r2,a
 63F: D4 27   call $627
 641: F2 46   jb7  $646
 643: A9      mov  r1,a
-644: D4 27   call $627          ; fetch byte from songdata
+644: D4 27   call $627          ; fetch byte from pattern data
 646: A8      mov  r0,a
 647: D4 5D   call $65D          ; get frequency of note
 649: F8      mov  a,r0
 64A: 83      ret
 
-64B: D2 54   jb6  $654          ; If channel B flag set, jump
-64D: D5      sel  rb1           ; Else silence channel B
+64B: D2 54   jb6  $654          ; if channel B flag set, jump
+64D: D5      sel  rb1           ; else silence channel B
 64E: BE 00   mov  r6,#$00
 650: BF 00   mov  r7,#$00
 652: C5      sel  rb0
