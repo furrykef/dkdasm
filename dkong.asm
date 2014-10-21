@@ -96,7 +96,7 @@ REG_SFX_DEATH   equ $7d80   ; plays when Mario dies (triggers i8035's interrupt)
 
 ; Some other hardware registers
 REG_FLIPSCREEN      equ $7d82
-REG_SPRITE          equ $7d83   ; @TODO@ -- what does this do, exactly?
+REG_SPRITE          equ $7d83   ; cleared at program start and never used
 REG_VBLANK_ENABLE   equ $7d84
 REG_DMA             equ $7d85   ; @TODO@ -- what does this do, exactly?
 
@@ -1212,8 +1212,8 @@ FF = Extra Mario Icon
 
 ; called from #007D
 ; HL is preloaded with #0138
-; refresh the P8257 Control registers
-; refreshes the sprites ?
+; This copies the sprite data from $6900 to $7000
+; Presumably the reason sprite data isn't stored in $7000 in the first place is to ensure it's updated only during vblank.
 
 0141  AF        XOR     A               ; A := 0
 0142  32857D    LD      (REG_DMA),A     ; store into P8257 DRQ DMA Request

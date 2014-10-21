@@ -1,3 +1,11 @@
+# our own entries go here
+*.zip
+*roms*
+*.sym
+
+
+# rest of file is standard .gitignore
+
 #################
 ## Eclipse
 #################

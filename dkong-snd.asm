@@ -19,7 +19,7 @@
 ;
 ; P2 writes
 ; ---------
-; Bit 7: reset decay for volume envelopes if set (keep on for no decay)
+; Bit 7: reset volume decay if set (keep on for no decay)
 ; Bit 6: if clear, External Data Memory reads compressed sample ROM
 ; Bit 5: seems unused
 ; Bit 4: "status code to main cpu" (according to MAME) -- I don't think the game uses this (@TODO@ -- verify)
@@ -63,7 +63,7 @@
 ; So if you want to play a 440 Hz tone, the number stored would be 440*5.5704 = 2450 = $992.
 ; To convert from frequency values to Hz, divide by 5.5704. 2450 / 5.5704 = 439.82.
 ;
-; There is no per-channel volume control. The DAC itself applies volume envelopes; see description of P2.
+; There is no per-channel volume control. The DAC itself can apply volume decay; see description of P2.
 ;
 ; Sound channel registers (RB0 = channel A; RB1 = channel B):
 ;   * r4: counter LSB
@@ -87,7 +87,7 @@
 ; ------------------------------------------
 ; 00-15: music patterns using the pattern data in $300-4ff
 ; 80-ff: has to do with digital audio samples
-;   * fa: unused "Nice!" sample
+;   * fa: unused "Nice!/Hey!/Thanks!" sample
 ;   * fc: unused "Help!" sample
 ;   * fd: DK roar (once, not three times like usual)
 
@@ -383,9 +383,7 @@
 13C: D5      sel  rb1
 13D: A4 35   jmp  $535
 
-; @TODO@ - I'm not sure what the point of this routine is.
-; Dummy it out and the music plays in a lower key, but is otherwise fine.
-; Maybe it's meant to compensate for a change in playback rate??
+; Seems to be used to give notes a brief pitch shift
 13F: FE      mov  a,r6
 140: 6F      add  a,r7
 141: E6 44   jnc  $144
@@ -396,9 +394,10 @@
 148: AE      mov  r6,a
 149: 83      ret
 
-; Called from $57d music routine
-; A = address of playlist in bank 5
-; RB is always 1 when called
+; Called from $57d music routine (songs using decay)
+; In:
+;   A = address of playlist in page 5
+;   RB = 1
 14A: AB      mov  r3,a
 14B: D5      sel  rb1           ; can get here from $15c
 14C: FB      mov  a,r3
@@ -406,47 +405,48 @@
 14E: C5      sel  rb0
 14F: B4 33   call $533          ; fetch from page 5
 151: C6 9E   jz   $19E          ; return if hit end of playlist
-153: F2 9F   jb7  $19F          ; return if pattern is digital sample
+153: F2 9F   jb7  $19F          ; jump if pattern is digital sample
 155: A8      mov  r0,a
-156: D4 1A   call $61A
+156: D4 1A   call $61A          ; init pattern
 158: D4 38   call $638
 15A: D4 4B   call $64B
 15C: C6 4B   jz   $14B          ; loop back if zero
 15E: B9 03   mov  r1,#$03       ; loop three times
 160: 8A 80   orl  p2,#$80       ; reset decay
-162: 34 3F   call $13F          ; do something with channel A (@TODO@)
+162: 34 3F   call $13F          ; pitch adjust channel A
 164: D5      sel  rb1           ; set channel B
-165: 34 3F   call $13F          ; do something with channel B (@TODO@)
+165: 34 3F   call $13F          ; pitch adjust channel B
 167: D4 7B   call $67B          ; output sound
-169: E9 62   djnz r1,$162       ; loop
+169: E9 62   djnz r1,$162       ; loop; RB = 0 here
 16B: B9 04   mov  r1,#$04       ; call $67b four times
 16D: D5      sel  rb1
 16E: D4 7B   call $67B
-170: E9 6D   djnz r1,$16D       ; loop
+170: E9 6D   djnz r1,$16D       ; loop; RB = 0 here
 172: FA      mov  a,r2
-173: 03 F9   add  a,#$F9
+173: 03 F9   add  a,#$F9        ; A -= 7 (adjusts duration for above $67b calls)
 175: A9      mov  r1,a
 176: C6 58   jz   $158
 178: 9A 7F   anl  p2,#$7F       ; enable decay
 17A: D5      sel  rb1
 17B: D4 7B   call $67B
-17D: E9 7A   djnz r1,$17A
+17D: E9 7A   djnz r1,$17A       ; loop; RB = 0 here
 17F: 24 58   jmp  $158
 
-; called while playing intro music and DK roar during intro (not other DK roars!)
+; Called from music routine at $581 (non-BGM songs without decay)
+; This is the same as the above routine, but without the pitch shifting and decay.
 181: AB      mov  r3,a
 182: D5      sel  rb1
 183: FB      mov  a,r3
 184: 1B      inc  r3
 185: C5      sel  rb0
 186: B4 33   call $533          ; fetch from page 5
-188: C6 9E   jz   $19E          ; return if zero
-18A: F2 9F   jb7  $19F
+188: C6 9E   jz   $19E          ; return if hit end of playlist
+18A: F2 9F   jb7  $19F          ; jump if pattern is digital sample
 18C: A8      mov  r0,a
 18D: D4 1A   call $61A
 18F: D4 38   call $638
 191: D4 4B   call $64B
-193: C6 82   jz   $182
+193: C6 82   jz   $182          ; loop back if zero
 195: FA      mov  a,r2
 196: A9      mov  r1,a
 197: D5      sel  rb1
@@ -455,6 +455,7 @@
 19C: 24 8F   jmp  $18F
 19E: 83      ret
 
+; This has to do with digital samples
 19F: BE 80   mov  r6,#$80
 1A1: A4 A2   jmp  $5A2
 
@@ -696,8 +697,8 @@
 2F0: 50 4B 46 41 3C 37 32 2D 28 23 1E 19 14 0F 0A 05
 
 
-; Pattern data
-; ------------
+; Pages 3 and 4: pattern data
+; ---------------------------
 ; Pattern $00, empty
 300: 00
 
@@ -874,11 +875,13 @@
 531: FE      db $fe
 532: 00      db $00
 
+
 ; Fetch from page 5
 ; -----------------
 ; A routine called from other pages to get data from this page
 533: A3      movp a,@a
 534: 83      ret
+
 
 ; Part of the program's main loop
 ; -------------------------------
@@ -922,6 +925,7 @@
 561: AF      mov  r7,a
 562: C4 7B   jmp  $67B
 
+
 ; Start song
 ; ----------
 ; Uses RB1
@@ -944,16 +948,19 @@
 579: B9 08   mov  r1,#$08
 57B: C4 7B   jmp  $67B
 
-; Play tune that uses volume envelopes
-; ------------------------------------
+
+; Play tune that uses volume decay
+; --------------------------------
 57D: 34 4A   call $14A
 57F: 04 52   jmp  $052
 
-; Play tune that does not use volume envelopes
-; --------------------------------------------
+
+; Play tune that does not use volume decay
+; ----------------------------------------
 581: 34 81   call $181
 583: 04 52   jmp  $052          ; jump to main
 
+; @TODO@ -- not used?
 585: C5      sel  rb0
 586: BE 80   mov  r6,#$80
 588: F4 06   call $706
@@ -976,6 +983,7 @@
 59E: 14 45   call $045
 5A0: 04 52   jmp  $052
 
+; Has to do with digital samples
 5A2: D2 B6   jb6  $5B6
 5A4: 97      clr  c
 5A5: F7      rlc  a
@@ -1056,7 +1064,9 @@
 5FE: FF      mov  a,r7
 5FF: FF      mov  a,r7
 
+
 ; Frequency table used by routine at $65d
+; ---------------------------------------
 ; These seem to be the 12 notes of an octave
 ; Note that these are big endian!
 600: 2800
@@ -1073,6 +1083,7 @@
 616: 4746
 618: 4B83
 
+
 ; Start playing a pattern
 ; -----------------------
 ; In: r0 = pattern ID
@@ -1080,11 +1091,11 @@
 61C: B9 30   mov  r1,#$30
 61E: B1 FF   mov  @r1,#$FF
 
-; Skip songs until r3 points to the song we want.
-; Skip N songs, where N is r0.
-; $00 indicates end of song, so we loop until we've counted that N nulls.
+; Skip patterns until r3 points to the song we want.
+; Skip N patterns, where N is r0.
+; $00 indicates end of pattern, so we loop until we've counted N nulls.
 620: D4 27   call $627          ; fetch byte from pattern data
-622: 96 20   jnz  $620          ; keep reading until we hit end-of-song
+622: 96 20   jnz  $620          ; keep reading until we hit end-of-pattern
 624: E8 20   djnz r0,$620       ; repeat until we've skipped N songs
 626: 83      ret
 
@@ -1116,14 +1127,23 @@
 636: 84 F8   jmp  $4F8          ; fetch from page 4 and return
 
 
+; Load note
+; ---------
 638: D4 27   call $627          ; fetch byte from pattern data
 63A: C6 5C   jz   $65C          ; return if zero
+
+; If bit 7 is clear, it's a duration
 63C: F2 46   jb7  $646
 63E: AA      mov  r2,a
-63F: D4 27   call $627
-641: F2 46   jb7  $646
+63F: D4 27   call $627          ; fetch next byte from pattern data
+
+; If bit 7 of this byte is also clear... well, it doesn't matter because it won't be.
+; It never is with the original pattern data, and I don't think this code would have any effect anyway.
+641: F2 46   jb7  $646          ; branch always taken with standard pattern data
 643: A9      mov  r1,a
-644: D4 27   call $627          ; fetch byte from pattern data
+644: D4 27   call $627          ; fetch next byte from pattern data
+
+; A now contains a note ID
 646: A8      mov  r0,a
 647: D4 5D   call $65D          ; get frequency of note
 649: F8      mov  a,r0
@@ -1136,7 +1156,7 @@
 652: C5      sel  rb0
 653: 83      ret
 
-654: D4 27   call $627          ; fetch note to play
+654: D4 27   call $627          ; fetch byte from pattern data
 656: D5      sel  rb1
 657: A8      mov  r0,a
 658: D4 5D   call $65D          ; get frequency of note
@@ -1158,7 +1178,7 @@
 668: F8      mov  a,r0
 
 ; Loop N times where N is the first two bits of high nybble
-; (This chooses the octave)
+; (i.e., shift the pitch N octaves down)
 669: 53 30   anl  a,#$30
 66B: 47      swap a
 66C: AC      mov  r4,a
@@ -1184,9 +1204,12 @@
 ; This is the primary routine used to output channels A and B -- the music engine's inner loop.
 ; It plays a few samples, then returns after a timer fires to give the rest of the music engine a chance to run.
 ;
-; r6-7: channel A frequency (16-bit; r6 = LSB)
-; r6'-7': channel B frequency (16-bit; r6 = LSB)
-; RB is 1 upon entry
+; In:
+;   r6-7 = channel A frequency (16-bit; r6 = LSB)
+;   r6'-7' = channel B frequency (16-bit; r6 = LSB)
+;   RB = 1
+; Out:
+;   RB = 0
 
 ; T will be very low here (often 0 or 1). So this roughly halves the time before timer fires
 67B: 42      mov  a,t
@@ -1293,6 +1316,9 @@
 6E0: 60 5D 5A 57 54 51 4E 4B 48 45 42 3F 3C 39 36 33
 6F0: 30 2D 2A 27 24 21 1E 1B 18 15 12 0F 0C 09 06 03
 
+
+; Page 7: digital sample playback
+; -------------------------------
 700: 02      db $02
 701: 04      db $04
 702: 06      db $06
@@ -1321,7 +1347,6 @@
 721: 8A 80   orl  p2,#$80
 723: 83      ret
 
-; This code has to do with playing a sample from sample ROM
 724: BF 00   mov  r7,#$00
 726: 9A BF   anl  p2,#$BF
 728: A5      clr  f1
