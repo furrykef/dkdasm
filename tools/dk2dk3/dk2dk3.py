@@ -32,13 +32,13 @@ def main(argv=None):
         spr3 = inzip.read('l_4r_b.bin') + b'\0'*0x800 
         spr4 = inzip.read('l_4s_b.bin') + b'\0'*0x800
         prom1 = inzip.read('c-2k.bpr')
-        prom1 += prom1
         prom2 = inzip.read('c-2j.bpr')
-        prom2 += prom2
         prom3 = inzip.read('v-5e.bpr')
         snd1 = b'\0'*0x2000
         snd2 = b'\0'*0x2000
         adr = b'\0'*0x20
+
+    prom1, prom2 = conv_proms(prom1, prom2)
 
     # Create outdir if it does not exist
     # This is not recursive; it cannot create dirs that lead to it
@@ -69,6 +69,26 @@ def writefile(filename, data):
     with open(filename, 'wb') as f:
         f.write(data)
 
+
+def conv_proms(prom1_in, prom2_in):
+    prom1_out = []
+    prom2_out = []
+    for nyb1, nyb2 in zip(prom1_in, prom2_in):
+        byte = (nyb2 << 4) | nyb1
+
+        # Get raw RGB values
+        r = (byte & 0b11100000) >> 5
+        g = (byte & 0b00011100) >> 2
+        b = (byte & 0b00000011)
+
+        # Convert to 12-bit color
+        color = (r << 9) | (g << 5) | (b << 2)
+
+        # Convert to DK3 format
+        prom1_out.append((color & 0x7ff) >> 4)
+        prom2_out.append(color & 0x0f)
+
+    return bytes(prom1_out), bytes(prom2_out)
 
 if __name__ == '__main__':
     sys.exit(main())
