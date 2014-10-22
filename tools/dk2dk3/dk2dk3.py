@@ -81,11 +81,16 @@ def conv_proms(prom1_in, prom2_in):
         g = (byte & 0b00011100) >> 2
         b = (byte & 0b00000011)
 
+        # Convert to 4-bit values
+        r = (r << 1) | 1
+        g = (g << 1) | 1
+        b = (b << 2) | 3
+
         # Convert to 12-bit color
-        color = (r << 9) | (g << 5) | (b << 2)
+        color = (r << 8) | (g << 4) | b
 
         # Convert to DK3 format
-        prom1_out.append((color & 0x7ff) >> 4)
+        prom1_out.append((color & 0xfff) >> 4)
         prom2_out.append(color & 0x0f)
 
     return bytes(prom1_out), bytes(prom2_out)
