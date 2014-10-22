@@ -9,6 +9,8 @@ REG_FLIPSCREEN:     equ $7e82
 REG_SPRITE:         equ $7e83
 REG_VBLANK_ENABLE:  equ $7e84
 REG_DMA:            equ $7e85
+REG_PALETTE_A:      equ $7e86
+REG_PALETTE_B:      equ $7e87
 
 incbin "roms/dkong3/dk3c.7b"
 
@@ -86,3 +88,37 @@ org $141, $17a
 
 DmaTbl:
         db      $7d, $00, $69, $9f, $01, $14, $10, $ad, $00, $70, $8a, $cf, $87
+
+
+; Let's get all the stupid palette calls at once
+forg $2a8
+org $2a8
+        ld      (REG_PALETTE_A), a
+        ld      (REG_PALETTE_B), a
+forg $779
+        ld      hl, REG_PALETTE_A
+forg $7df
+        ld      hl, REG_PALETTE_A
+forg $8cf
+        ld      hl, REG_PALETTE_A
+forg $9d7
+        ld      (REG_PALETTE_A), a
+        ld      (REG_PALETTE_B), a
+forg $a1c
+        ld      (REG_PALETTE_A), a
+        ld      (REG_PALETTE_B), a
+forg $a8b
+        ld      (REG_PALETTE_A), a
+        inc     a
+        ld      (REG_PALETTE_B), a
+forg $bea
+        ld      hl, REG_PALETTE_A
+forg $c9f
+        ld      hl, REG_PALETTE_A
+forg $cb9
+        ld      hl, REG_PALETTE_A
+forg $ce2
+        ld      hl, REG_PALETTE_A
+forg $1491
+        ld      (REG_PALETTE_A), a
+        ld      (REG_PALETTE_B), a
