@@ -33,6 +33,18 @@ The i8035 has no native sound capabilities. But one of its output ports is conne
 There are two sound ROMs. s_3i_b.bin is the main program ROM and is what appears in disassembled form in this repository. s_3j_b.bin is a sample ROM that contains only compressed digital samples, though this ROM could be repurposed for other data if you write code to use it.
 
 
+## Level design tips
+Don't make your game too hard! This is was the main flaw of the old D2K: Return of Jumpman hack. Remember that newcomers to your hack have never played it before, whereas you've probably spent hours playtesting your stages. The stage should be quite easy for you, but challenging for new players. Have playtesters record videos and see how they play. Ideally, they'll lose a couple of lives on their first few attempts, but soon get the hang of it.
+
+Remember that the original game had at least one unique concept per stage. The first stage had ramps and barrels; the second stage had conveyors and cement pies; the third stage had elevators and springs; the fourth stage had rivets. Donkey Kong Junior followed this philosophy as well except in its first stage.
+
+You don't necessarily have to implement a new mechanic for every stage, but try to keep things fresh.
+
+Have a consistent design philosophy.
+
+DK came out in a time games were mostly about getting high scores. However, it also introduced the idea of focusing on how far you can get. Look at how the pie factory and elevator levels allow you to get more points at the risk of not getting as far by choosing a more difficult path.
+
+
 ## Hardware conversions
 If you're making a hack, consider targeting Donkey Kong Junior or especially Donkey Kong 3 hardware instead of Donkey Kong. The hardware is nearly the same, but better, and your ROM code won't need many adjustments. How to handle these adjustments is currently an exercise for the reader.
 
@@ -54,6 +66,8 @@ There is a minor issue in that DIP switches for emulators such as MAME will assu
 There is very little that DK3's audio hardware can't do that DK can. The 2A03 is designed to output square and triangle waves, but it can use the DPCM counter register as a 7-bit DAC. One of the few advantages DK has over DK3 is its DAC is 8-bit, but its sound output is so heavily filtered that the quality isn't really any higher.
 
 Each 2A03 in Donkey Kong 3 has 8 KB ROM and 512 bytes of RAM.
+
+As with controller reads on the NES, this hardware has a bug where reads from the I/O port may be wrong during DPCM playback. Emulators may not emulate this glitch. In any case, this bug can be worked around by reading repeatedly until you get the same value twice.
 
 #### Suggested approaches for sound
 You might use one 2A03 primarily for sound effects and one primarily for music. This way you don't have to worry about having to play music and sound effects at the same time, which is good if you want to use a music engine that doesn't support it, such as FamiTracker.
