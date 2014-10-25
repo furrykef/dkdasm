@@ -1,7 +1,20 @@
+#########################
 # our own entries go here
+#########################
+
+# Keep ROMs out
 *.zip
 *roms*
+
+# Build junk
 *.sym
+*.o
+
+# DK3 sound ROMs
+dk3c.*
+
+# FamiTracker music dumps
+music.asm
 
 
 # rest of file is standard .gitignore

@@ -1,6 +1,10 @@
 # Convert a Donkey Kong romset to run on Donkey Kong 3
 # This only rearranges the ROM data and renames ROMs so MAME can load it as a dkong3 set.
 # It doesn't modify any actual code or data.
+#
+# Note that dkc1-v.5e is unchanged from DK3.
+# There's no need to burn it if you're modifying a DK3 board.
+#
 # Written for Python 3.4
 import os
 import sys
@@ -36,7 +40,7 @@ def main(argv=None):
         prom3 = inzip.read('v-5e.bpr')
         snd1 = b'\0'*0x2000
         snd2 = b'\0'*0x2000
-        adr = b'\0'*0x20
+        adr = b'\xfd\xfd\xfd\xfd\xfb\xfb\xfb\xfb\xf7\xf7\xf7\xf7\xdf\xbf\xfe\xfe\xef\xef\xef\xef\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff\xff'
 
     prom1, prom2 = conv_proms(prom1, prom2)
 

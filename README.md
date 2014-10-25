@@ -70,7 +70,24 @@ Each 2A03 in Donkey Kong 3 has 8 KB ROM and 512 bytes of RAM.
 As with controller reads on the NES, this hardware has a bug where reads from the I/O port may be wrong during DPCM playback. Emulators may not emulate this glitch. In any case, this bug can be worked around by reading repeatedly until you get the same value twice.
 
 #### Suggested approaches for sound
-You might use one 2A03 primarily for sound effects and one primarily for music. This way you don't have to worry about having to play music and sound effects at the same time, which is good if you want to use a music engine that doesn't support it, such as FamiTracker.
+You might use one 2A03 primarily for sound effects and one primarily for music. This way you don't have to worry about having to play music and sound effects at the same time, which is good if you want to use a music engine that doesn't support this, such as FamiTracker.
+
+### Mario Bros.
+Mario Bros. has more advanced video hardware, giving you 8 colors per tile and 7 colors per sprite instead of 4/tile and 3/sprite. However, there are fewer palettes available.
+
+#### Comparison with DK3 hardware
+The Mario Bros. hardware has only 28 KB program ROM space instead of 32 KB.
+
+DK3 and Mario Bros. both allow up to 512 tiles and 256 sprites, so their graphical capacity is the same.
+
+DK3 and Mario Bros. both use a 4 MHz Z80, so their processing capacity is identical.
+
+The sound hardware is basically the same as Donkey Kong's with a faster chip. That means DK's sound ROM can be used with little modification, but you cannot write new music or sound using standard tools such as FamiTracker.
+
+### Summary
+* DKJr: The same as DK hardware, but with more ROM space and with DKJr sound effects
+* DK3: The most ROM space; two NES APUs for audio (can be used with FamiTracker)
+* Mario: Slightly less program ROM space than DK3; sound hardware similar to DK's
 
 
 ## UAQ

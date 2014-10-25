@@ -23,7 +23,7 @@
 ; Assembler code switches
 ;
 
-USE_BANKSWITCH = 1		; Enable bankswitching code
+;USE_BANKSWITCH = 1		; Enable bankswitching code
 USE_DPCM = 1			; Enable DPCM channel (currently broken, leave enabled to avoid trouble).
 						; Also leave enabled when using expansion chips
 
@@ -31,9 +31,9 @@ USE_DPCM = 1			; Enable DPCM channel (currently broken, leave enabled to avoid t
 ;RELOCATE_MUSIC = 1		; Enable if music data must be relocated
 
 NTSC_PERIOD_TABLE = 1	; Enable this to include the NTSC period table
-PAL_PERIOD_TABLE = 1	; Enable this to include the PAL period table
+;PAL_PERIOD_TABLE = 1	; Enable this to include the PAL period table
 
-ENABLE_ROW_SKIP = 1		; Enable this to add code for seeking to a row > 0 when using skip command
+;ENABLE_ROW_SKIP = 1		; Enable this to add code for seeking to a row > 0 when using skip command
 
 ;USE_VRC6 = 1 			; Enable this to include VRC6 code
 ;USE_MMC5 = 1			; Enable this to include MMC5 code
@@ -46,7 +46,7 @@ ENABLE_ROW_SKIP = 1		; Enable this to add code for seeking to a row > 0 when usi
 
 SPEED_SPLIT_POINT = 32  ; Speed/tempo split-point. Patched by the NSF exporter
 
-USE_EXP = 1             ; Enable expansion chips
+;USE_EXP = 1             ; Enable expansion chips
 
 ;SCALE_NOISE = 1         ; Enable 4 bit noise period scaling
 

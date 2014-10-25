@@ -699,6 +699,19 @@
 
 ; Pages 3 and 4: pattern data
 ; ---------------------------
+; Format:
+;   * If the value is $00, end the pattern.
+;   * Else, if bit 7 is clear, the byte is the duration for all following notes until another duration code is read.
+;   * Else, for channel A:
+;     * Bits 0-3 set the note (A, A#, B, C ...)
+;     * Bits 4-5 set the octave (higher values choose lower octaves)
+;     * Bit 6 indicates the next byte is a note to play on channel B.
+;
+; Channel B notes follow the same format, except bits 6-7 are ignored.
+;
+; This format means it is impossible to play a note on channel B without also playing one on channel A,
+; and the channels cannot have separate durations.
+
 ; Pattern $00, empty
 300: 00
 
@@ -804,11 +817,13 @@
 ; ----------
 ; Used by routine at $535
 ;
-; Bits for each song:
-;   Bit 7: rivet removed
-;   Bit 6: hammer hit
-;   Bit 5: use playlist table at $520 and play using no envelopes
-;   Bit 4: use playlist table at $510 and use volume envelopes
+; Codes for each song:
+;   * If code is $00, play nothing
+;   * Else, if bit 7 is set, it's the code for "rivet removed"
+;   * Else, if bit 4 is set, use playlist table at $510 and play using volume decay
+;   * Else, if bit 5 is set, use playlist table at $520 and play using no decay
+;   * Else, if bit 6 is set, it's the hammer hit sound effect
+;   * Else, it's an index straight into the pattern table, not a playlist table (used only for in-game music)
 ;
 ; Bits 4 and 5 aren't mere flags. When they are set (and bits 6 and 7 are not), the value is a page 5 pointer straight into the playlist table.
 ;
@@ -831,7 +846,7 @@
 50E: 1E      db $1e             ; %00011110  E: Music when DK is about to fall in rivet stage
 50F: 2D      db $2d             ; %00101101  F: DK roars
 
-; Playlist table for $57d songs 
+; Playlist table for $57d songs
 ; -----------------------------
 ; For instance, $516 will play patterns $14, $83, $fe, etc. until it hits $00.
 ; FE 85 FE 85 FE 00 plays three gorilla roars
@@ -1149,6 +1164,9 @@
 649: F8      mov  a,r0
 64A: 83      ret
 
+
+; We get here after a note was loaded for channel A.
+; Now we have to determine whether to play a note for channel B.
 64B: D2 54   jb6  $654          ; if channel B flag set, jump
 64D: D5      sel  rb1           ; else silence channel B
 64E: BE 00   mov  r6,#$00
@@ -1156,6 +1174,7 @@
 652: C5      sel  rb0
 653: 83      ret
 
+; Channel B flag was set; load frequency
 654: D4 27   call $627          ; fetch byte from pattern data
 656: D5      sel  rb1
 657: A8      mov  r0,a

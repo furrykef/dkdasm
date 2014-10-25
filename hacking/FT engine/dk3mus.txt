@@ -1,0 +1,8 @@
+The plan
+--------
+2a03a: Music and sound effects. $4016 selects music; $4017 selects sfx.
+2a03b: Music only.
+
+2a03a: Not used for in-game music. The FT engine is not used for nonmusical sound effects (i.e. sound effects other than the "scored points" jingle). The sfx register is a set of bit toggles.
+
+ft_music_init silences all channels, so we'll need refresh sfx channels afterward.

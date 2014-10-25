@@ -1,0 +1,29 @@
+Sections
+--------
+Your MML file must have the following sections:
+* SONGS: A table listing songs to play.
+* PLAYLIST_A: A list of patterns to play. These songs use volume decay.
+* PLAYLIST_B: Works the same as playlist A, but the songs do not use volume decay.
+* PATTERN: one section per pattern.
+
+
+SONGS
+-----
+The song table has 13 entries.
+
+There are three possible values for a song:
+* The name of an entry in playlist A
+* The name of an entry in playlist B
+* The name of a pattern
+
+If you are using the name of a pattern, the pattern must be one of the first 14 patterns in the file.
+
+
+PLAYLIST_A / PLAYLIST_B
+-----------------------
+Each playlist has up to 16 entries.
+
+
+PATTERN
+-------
+An empty pattern named "end" is automatically generated for you.

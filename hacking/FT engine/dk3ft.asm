@@ -1,7 +1,29 @@
+.segment "CODE"
+
 Start:
         sei
         ldx     #$ff
         txs
+
+        ; Silence all channels
+        lda     #$00
+        tax
+@init_channels:
+        sta     $4000,x
+        cmp     #$13
+        bne     @init_channels
+        lda     #$0f
+        sta     $4015
+        lda     #$40
+        sta     $4017
+
+        ; Give the Z80 time to clear (or set) our input before we begin.
+        ; Dunno if it's necessary or not, but it can't hurt.
+        ldx     #0
+@wait:
+        dex
+        bne     @wait
+
         ; fall through to Main
 
 Main:
@@ -11,7 +33,7 @@ Main:
         tay                         ; save song ID in Y
         ldx     #0                  ; use NTSC playback
         tya                         ; put song ID back in A
-        jsr     ft_music_init
+        jsr     ft_music_init       ; load song (A = song ID, X = NTSC/PAL)
 @play_frame:
         jsr     WaitForVblank
         jsr     ft_music_play
@@ -54,7 +76,16 @@ VblankISR:
         rti
 
 
+.segment "BSS"
+tmp:            .res 1
+CurSongID:      .res 1
+VblankFlag:     .res 1
+
+
 .segment "FOOTER"
-.word VblankISR                     ; NMI
-.word Start                         ; Reset
-.word Start                         ; BRK
+.word VblankISR                 ; NMI
+.word Start                     ; Reset
+.word Start                     ; BRK
+
+
+.include "driver.s"
