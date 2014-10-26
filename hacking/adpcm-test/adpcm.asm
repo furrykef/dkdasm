@@ -1,5 +1,3 @@
-.segment "HDR"
-
 .segment "HEADER"
 ;
 .byte 'N', 'E', 'S', 'M', $1A               ; ID
@@ -20,7 +18,7 @@
 .byte 0,0,0,0                               ; Reserved
 
 
-.segment "ZP"
+.segment "ZEROPAGE"
 
 SampleAddr:
 SampleAddrLSB:      .res 1
@@ -38,12 +36,27 @@ StepSize:
 StepSizeLSB:        .res 1
 StepSizeMSB:        .res 1
 
+ShiftedStepSize:
+ShiftedStepSizeLSB: .res 1
+ShiftedStepSizeMSB: .res 1
+
+Delta:
+DeltaLSB:           .res 1
+DeltaMSB:           .res 1
+
+DeltaCopy:
+DeltaCopyLSB:       .res 1
+DeltaCopyMSB:       .res 1
+
+Code:               .res 1
+
 StepIndex:          .res 1
+
 
 .segment "CODE"
 
 INIT:
-        ret
+        rts
 
 ; Remember to clear APU regs when we do non-NSF version
 PLAY:
@@ -52,95 +65,75 @@ PLAY:
         lda     #>SampleData
         sta     SampleAddrMSB
 
-        lda     #<SampleSize
+        lda     #<SampleDataSize
         sta     SampleBytesLeftLSB
-        lda     #>SampleSize
+        lda     #>SampleDataSize
         sta     SampleBytesLeftMSB
 
         jsr     PlayAdpcm
-        ret
+        rts
 
 
-; Shift a 16-bit variable right
+; Unsigned 16-bit shift
 .macro lsr16    var
-        lda     var
-        lsr
-        sta     var
-        lda     var+1
-        ror
-        sta     var+1
+        lsr     var+1
+        ror     var
 .endmac
 
+; Add two 16-bit integers and store result in var1
+.macro add16    var1, var2
+        clc
+        lda     var1
+        adc     var2
+        sta     var1
+        lda     var1+1
+        adc     var2+1
+        sta     var1+1
+.endmac
 
-; Based on C code from http://svn.annodex.net/annodex-core/libsndfile-1.0.11/src/vox_adpcm.c
-; A = nybble to process (high four bytes clear)
-; Y must not be modified
-.macro HandleAdpcmCode
-        sta     Code
-        lda     StepIndex
-        asl                             ; indexing into table of 16-bit values
-        tax
-        lda     AdpcmStepTbl,x
-        sta     StepSizeLSB
-        sta     ShiftedStepSizeLSB
-        inx
-        lda     AdpcmStepTbl,x
-        sta     StepSizeMSB
-        sta     ShiftedStepSizeMSB
-
-        lda     #0
-        sta     ErrorLSB
-        sta     ErrorMSB
-
-        lda     #$04
-        bit     Code
-        bne     :+
-        add16   Error, ShiftedStepSize
-:       lsr16   ShiftedStepSize
-        lda     #$02
-        bit     Code
-        bne     :+
-        add16   Error, ShiftedStepSize
-:       lsr16   ShiftedStepSize
-        lda     #$01
-        bit     Code
-        bne     :+
-        add16   Error, ShiftedStepSize
-:
-        lda     #$08
-        bit     Code
-        bne     @add_error
-        sub16   Delta, Error
-        jmp     :+
-@add_error:
-        add16   Delta, Error
-:       ???
+; 16-bit subtract var2 from var1 and store result in var1
+.macro sub16   var1, var2
+        sec
+        lda     var1
+        sbc     var2
+        sta     var1
+        lda     var1+1
+        sbc     var2+1
+        sta     var1+1
 .endmac
 
 
 PlayAdpcm:
         ldy     #0                          ; Y is SampleAddr offset
         sty     StepIndex                   ; clear step index
+        sty     DeltaLSB                    ; clear delta
+        sty     DeltaMSB
 @loop:
-        lda     (SampleAddr), y             ; 5 cycles
-        and     #$0f                        ; 2
-        HandleAdpcmCode
+        lda     (SampleAddr),y
+        lsr
+        lsr
+        lsr
+        lsr
+        jsr     HandleAdpcmCode
 
-        ; insert wait loop here
+        ; wait about 160 cycles
+        ; @TODO@ -- what if loop crosses page boundary?
+        ldx     #32
+@wait1:
+        dex
+        bne     @wait1
 
-        lda     (SampleAddr),y              ; 5
-        lsr                                 ; 2
-        lsr                                 ; 2
-        lsr                                 ; 2
-        lsr                                 ; 2
-        HandleAdpcmCode
+        lda     (SampleAddr),y
+        and     #$0f
+        jsr     HandleAdpcmCode
 
-        ; insert wait loop here
+        ; wait about 160 cycles
+        ; @TODO@ -- what if loop crosses page boundary?
+        ldx     #32
+@wait2:
+        dex
+        bne     @wait2
 
-        iny                                 ; 2
-        bne     :+                          ; 2
-        inc     SampleAddrMSB
-:
         ; decrement SampleBytesLeft and quit if zero
         ; 16-bit decrement taken from http://6502org.wikidot.com/software-incdec#toc2
         lda     SampleBytesLeftLSB
@@ -150,10 +143,98 @@ PlayAdpcm:
         dec     SampleBytesLeftMSB
 @lsb_nonzero:
         dec     SampleBytesLeftLSB
+
+        iny
+        bne     @loop
+        inc     SampleAddrMSB
         jmp     @loop
 
 @done:
         jmp     @done
+
+
+; Based on C code from http://svn.annodex.net/annodex-core/libsndfile-1.0.11/src/vox_adpcm.c
+; A = nybble to process (high four bits clear)
+; Y must not be modified
+HandleAdpcmCode:
+        sta     Code
+        lda     StepIndex
+        asl                                     ; indexing into table of 16-bit values
+        tax
+        lda     AdpcmStepTbl,x
+        sta     StepSizeLSB
+        sta     ShiftedStepSizeLSB
+        sta     ErrorLSB
+        inx
+        lda     AdpcmStepTbl,x
+        sta     StepSizeMSB
+        sta     ShiftedStepSizeMSB
+        sta     ErrorMSB
+
+        ; Error /= 8
+        lsr16   Error
+        lsr16   Error
+        lsr16   Error
+
+        lda     #$04
+        bit     Code
+        beq     :+
+        add16   Error, ShiftedStepSize
+:       lsr16   ShiftedStepSize
+        lda     #$02
+        bit     Code
+        beq     :+
+        add16   Error, ShiftedStepSize
+:       lsr16   ShiftedStepSize
+        lda     #$01
+        bit     Code
+        beq     :+
+        add16   Error, ShiftedStepSize
+:
+        lda     #$08
+        bit     Code
+        beq     @add_error
+        sub16   Delta, Error
+        jmp     @output
+@add_error:
+        add16   Delta, Error
+@output:
+        ; We're gonna skip clipping Delta and just hope it never clips
+        ; DeltaCopy := Delta >> 4 (get the 8 most significant bits)
+        lda     DeltaLSB
+        sta     DeltaCopyLSB
+        lda     DeltaMSB
+        sta     DeltaCopyMSB
+        lsr16   DeltaCopy
+        lsr16   DeltaCopy
+        lsr16   DeltaCopy
+        lsr16   DeltaCopy
+        lda     DeltaCopyLSB
+        clc                                 ; convert to unsigned
+        adc     #$80
+        lsr                                 ; convert to 7-bit
+        sta     $4011                       ; finally output the sample
+
+        lda     Code
+        and     #$07
+        tax
+        lda     AdpcmAdjustTbl,x
+        clc
+        adc     StepIndex
+
+        ; Clamp StepIndex to range [0..48] (this *is* necessary)
+        bpl     @index_not_neg
+        lda     #0
+        beq     @index_in_range             ; branch always taken
+@index_not_neg:
+        cmp     #49
+        bcc     @index_in_range
+        lda     #48
+@index_in_range:
+        sta     StepIndex
+
+        ; Whew!
+        rts
 
 
 AdpcmStepTbl:
@@ -165,8 +246,11 @@ AdpcmStepTbl:
         .word 724, 796, 876, 963, 1060, 1166, 1282, 1411
         .word 1552
 
+AdpcmAdjustTbl:
+        .byte -1, -1, -1, -1, 2, 4, 6, 8
+
+
 SampleData:
         .incbin "dk-roar-sm.raw"
-        .align   256                        ; Better would be to pad with $80
 SampleDataEnd:
 SampleDataSize = SampleDataEnd - SampleData

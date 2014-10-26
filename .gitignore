@@ -16,6 +16,12 @@ dk3c.*
 # FamiTracker music dumps
 music.asm
 
+# Other music stuff
+*.nsf
+
+# Python junk
+__pycache__
+
 
 # rest of file is standard .gitignore
 
