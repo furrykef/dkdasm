@@ -17,7 +17,7 @@ This is just a rough overview. More detailed information is in the code.
 Donkey Kong has two main processors: a Z80 CPU and an i8035 microcontroller sound CPU. Technically, the sound CPU is an MB8884, but it is essentially the same chip.
 
 ### Video
-The monitor is, for all intents and purposes, a typical 256x224 monitor oriented vertically.
+The monitor is a typical 256x224 monitor oriented vertically, except Nintendo's monitors inverted the colors, so a standard monitor won't display correct colors. That's not relevant for hacking, though.
 
 The hardware supports up to 96 sprites, with up to 16 sprites per scanline. (Remember that scanlines are vertical due to the monitor's orientation.) All sprites are 16x16 and have three colors, plus transparency. This was top-notch equipment at the time!
 
@@ -39,6 +39,12 @@ Don't make your game too hard! This is was the main flaw of the old D2K: Return 
 Remember that the original game had at least one unique concept per stage. The first stage had ramps and barrels; the second stage had conveyors and cement pies; the third stage had elevators and springs; the fourth stage had rivets. Donkey Kong Junior followed this philosophy as well except in its first stage.
 
 You don't necessarily have to implement a new mechanic for every stage, but try to keep things fresh.
+
+Don't forget hammers. Every stage except the elevator stage has two hammers. If you don't include any hammers, make sure it's by choice, not negligence. The same goes for the three bonus items.
+
+Do not put bonus items in locations where it would be pointless to try to get them, either due to excessive risk or because collecting them would take more points off the clock than you'd get as a reward.
+
+Notice the thought that went into the original stages' design. In the barrel stage, it's always the longest ladders that are broken, the implication being they were stretched past their breaking point. The elevators in the elevator stage also likely go in opposite directions for a reason: the intention seems to be they operate in a loop, so that each platform that goes up the left comes down on the right. These considerations can be freely ignored if they make the level more fun; the point is just to consider that the stage design usually has a certain logic to it.
 
 Have a consistent design philosophy.
 
