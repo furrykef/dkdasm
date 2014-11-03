@@ -12,7 +12,7 @@ REG_DMA:            equ $7e85
 REG_PALETTE_A:      equ $7e86
 REG_PALETTE_B:      equ $7e87
 
-incbin "roms/dkong3/dk3c.7b"
+incbin "../../roms/dkong3-conv/dk3c.7b"
 
 forg $0002
 org $0002

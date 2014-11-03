@@ -22,6 +22,10 @@ music.asm
 # Python junk
 __pycache__
 
+# gfxrip output
+sprites.png
+tiles.png
+
 
 # rest of file is standard .gitignore
 

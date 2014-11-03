@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Convert a Donkey Kong romset to run on Donkey Kong Junior
 # This only rearranges the ROM data and renames ROMs so MAME can load it as a dkongjr set.
 # It doesn't modify any actual code or data (unless PATCH is True).

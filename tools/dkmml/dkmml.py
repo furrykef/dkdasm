@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # Written for Python 3.4
 import os.path
 import sys
