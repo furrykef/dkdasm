@@ -9,7 +9,7 @@ In these files, we do not aim to modify the game in any way, not even to fix bug
 
 
 ## How do I use this stuff?
-Well, at the moment, it's not very usable at all. But the documentation is on [the wiki](github.com/furrykef/dkdasm/wiki).
+Well, at the moment, it's not very usable at all. But the documentation is on [the wiki](http://github.com/furrykef/dkdasm/wiki).
 
 
 ## UAQ
