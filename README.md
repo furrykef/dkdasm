@@ -33,7 +33,7 @@ This project [began life on the Donkey Kong Forum](http://donkeykongforum.com/in
 The second phase [is taking place on the github](http://www.github.com/furrykef/dkdasm) and at the moment is concurrent with the first phase, so there's some merging back and forth. This phase consisted of replacing raw offsets with labels with descriptive names. Not only does this make the source easier to read, it also makes it possible to relocate RAM and ROM, which may be necessary for porting the game to other systems. We also cleaned up the source code in other respects.
 
 Z80 code contributors:
-* Jeff Wilms (phase 1)
+* Jeff Willms (phase 1)
 * Kef Schecter (phase 2)
 * An anonymous contributor (most of the initial work on phase 1)
 

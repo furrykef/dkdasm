@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="28" height="32" tilewidth="8" tileheight="8" backgroundcolor="#000000">
+ <tileset firstgid="1" name="tiles" tilewidth="8" tileheight="8">
+  <image source="../../tools/gfxrip/tiles.png" width="128" height="128"/>
+ </tileset>
+ <tileset firstgid="257" name="sprites" tilewidth="16" tileheight="16">
+  <image source="../../tools/gfxrip/sprites.png" width="128" height="256"/>
+ </tileset>
+ <layer name="Tile Layer 1" width="28" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztlU1OwzAQhefCUC4A6gVauBIUKOvyu+anZEtD2yzxiHlKNPHYiRMjhHjSp0jxROO+8auJ/vWXda6ev7HfmePAceiYOI4c84z9pp53Jwn9Pgy0Th3HillCv9D6WBq73zbCvXpa6zthL1SC1lsPrgJra+FdKBw3ZM84h4bOts/37OUT1f7C71B9peofqJ7bp1AKGwH+FQL8hd9QqH7ZqMe8XoUX4Vno6gPqfbVjZkyf39z9mueXgZ/wl2dzS/W8ML9Q3lL2B38X9D0fzAvzu6Z23qz9lgn9tWK/gfd6QfV5yt1P11j/b9Y3Oo+cRZ5fKI8raucL6ppfzmIzv13y6BPqF5H6XPdd6npM+vxy1thPK2+PFL7fugr+wf+hedP7HVu+/V429vsTGjJr/a3vftR5vCM7X32x7tNYHr8AWZUoxw==
+  </data>
+ </layer>
+ <objectgroup draworder="index" name="Object Layer 1">
+  <object gid="281" x="-3" y="83"/>
+  <object gid="281" x="7" y="83"/>
+  <object gid="281" x="-3" y="67"/>
+  <object gid="281" x="7" y="67"/>
+  <object gid="274" x="88" y="59"/>
+  <object gid="273" x="88" y="43"/>
+  <object gid="330" x="16" y="248"/>
+  <object gid="2147483905" x="40" y="248"/>
+  <object gid="296" x="48" y="84"/>
+  <object gid="297" x="51" y="68"/>
+  <object gid="293" x="35" y="68"/>
+  <object gid="287" x="164" y="200"/>
+  <object gid="287" x="13" y="108"/>
+  <object gid="295" x="22" y="84"/>
+  <object gid="294" x="36" y="84"/>
+  <object gid="298" x="24" y="72"/>
+ </objectgroup>
+</map>
