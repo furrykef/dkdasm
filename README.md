@@ -5,7 +5,7 @@ A complete, commented disassembly of the arcade version of Donkey Kong. It is in
 
 At least, that's what we're aiming for. As it is, we've got quite a ways to go.
 
-In this file we do not aim to modify the game in any way, not even to fix bugs (and there are a few!). Nothing stops you from making a fork and making whatever modifications you like, however, and in fact making this possible and practical is part of our aim.
+In these files, we do not aim to modify the game in any way, not even to fix bugs (and there are a few!). Nothing stops you from making a fork and making whatever modifications you like, however, and in fact making this possible and practical is part of our aim.
 
 
 ## How do I use this stuff?
