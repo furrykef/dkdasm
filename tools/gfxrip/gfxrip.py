@@ -88,7 +88,7 @@ tile_palettes = [
     pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
     pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
     pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_grey,    pal_girder,  pal_girder,  pal_grey,    pal_mario,
+    pal_girder,  pal_girder,  pal_girder,  pal_grey,    pal_girder,  pal_girder,  pal_dktile,   pal_mario,
 ]
 
 tile_files = [

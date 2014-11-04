@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<map version="1.0" orientation="orthogonal" renderorder="right-down" width="28" height="32" tilewidth="8" tileheight="8" backgroundcolor="#000000">
+ <tileset firstgid="1" name="tiles" tilewidth="8" tileheight="8">
+  <image source="../../tools/gfxrip/tiles.png" width="128" height="128"/>
+ </tileset>
+ <tileset firstgid="257" name="sprites" tilewidth="16" tileheight="16">
+  <image source="../../tools/gfxrip/sprites.png" width="128" height="256"/>
+ </tileset>
+ <layer name="Tile Layer 1" width="28" height="32">
+  <data encoding="base64" compression="zlib">
+   eJztlUkKwkAQRXNhhwsoXsDhSlkE3YrmAs5bZ5f+RTeEIkl1d36HIH54NKTAelSnYpL888tJxdnFfgvQA30wAEMwi9hvUvJsHNBvXYHMHIwE04B+dXVW2P2eCrk4q+oaNsfIZOZsK3LeL/AGn0j95LxP4Awu4Apu4A4ept7UR85XZgf24GDqsX3qkhJ8fHxddk3z8fHNFR9G2PfZ1Lfokzn4MN+/svuV89Hq1mfl4MP8r7C/1dY+uLqz9mGr+LDS5X2wPssanxjf4+Jdh+6Djw9zL1x8NooPM5rPF4wURkE=
+  </data>
+ </layer>
+ <objectgroup draworder="index" name="Object Layer 1">
+  <object gid="296" x="48" y="84"/>
+  <object gid="294" x="36" y="84"/>
+  <object gid="295" x="22" y="84"/>
+  <object gid="293" x="36" y="68"/>
+  <object gid="297" x="52" y="68"/>
+  <object gid="274" x="88" y="59"/>
+  <object gid="273" x="88" y="43"/>
+  <object gid="257" x="205" y="247"/>
+  <object gid="298" x="25" y="72"/>
+ </objectgroup>
+</map>
