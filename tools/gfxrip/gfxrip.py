@@ -7,7 +7,6 @@ import zipfile
 from PIL import Image
 
 
-# Note: needs trailing slash
 ROMSET = '../../roms/dkong.zip'
 
 
@@ -38,7 +37,7 @@ pal_grey = (black,
 pal_unknown = pal_grey
 
 pal_girder = (black,
-              (0xFF, 0x2c, 0x62),
+              (0xff, 0x2c, 0x62),
               (0xa4, 0, 0),
               cyan)
 
@@ -52,44 +51,10 @@ pal_oilbarl = (black, white, cyan, blue)
 pal_fire = (black, lt_orange, red, white)
 pal_spring = (black, babyblue, cyan, red)
 pal_elevbox = (black, lt_orange, red, black)
-pal_dktile = (black, orange, peach, white)
+pal_piefactory = (black, orange, peach, white)
 pal_rivet = (black, blue, cyan, lt_orange)
 pal_pie = (black, tan, lt_orange, blue)
 
-tile_palettes = [
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,
-    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_grey,    pal_unknown, pal_unknown, pal_unknown,
-    pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,
-    pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,
-    pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,  pal_dktile,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_rivet,   pal_dktile,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_rivet,
-    pal_rivet,   pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,  pal_girder,
-    pal_girder,  pal_girder,  pal_girder,  pal_grey,    pal_girder,  pal_girder,  pal_dktile,   pal_mario,
-]
 
 tile_files = [
     "v_5h_b.bin",
@@ -134,26 +99,9 @@ def main(argv=None):
         argv = sys.argv[1:]
 
     ### TILES ###
-    tiledata = decode(tile_files)
-
-    # Convert paletted values to RGB values
-    tiledata = [tile_palettes[pixel_num//64][color] for pixel_num, color in enumerate(tiledata)]
-
-    num_rows = 256//TILES_PER_ROW
-    num_cols = TILES_PER_ROW
-    tile_img = Image.new("RGB", (num_cols*8, num_rows*8))
-    for offset in range(0, len(tiledata), 64):
-        tile_num = offset//64
-        for y in range(8):
-            for x in range(8):
-                # Note that we're rotating each tile 90 degrees right as we do this
-                # Hence putting pixels at (7-y, x) instead of (x, y)
-                out_row = tile_num // TILES_PER_ROW
-                out_col = tile_num % TILES_PER_ROW
-                tile_img.putpixel((7-y + out_col*8, x + out_row*8), tiledata[offset+y*8+x])
-
-    tile_img.save("tiles.png")
-
+    doTiles(pal_girder, "tiles1.png")
+    doTiles(pal_rivet, "tiles2.png")
+    doTiles(pal_piefactory, "tiles3.png")
 
     ### SPRITES ###
     top_spr_data = decode(top_spr_files)
@@ -185,6 +133,28 @@ def main(argv=None):
                 spr_img.putpixel((7-y + out_col*8, x+8 + out_row*16), bottom_spr_data[offset+y*8+x])
 
     spr_img.save("sprites.png")
+
+
+def doTiles(palette, filename):
+    tiledata = decode(tile_files)
+
+    # Convert paletted values to RGB values
+    tiledata = [palette[color] for pixel_num, color in enumerate(tiledata)]
+
+    num_rows = 256//TILES_PER_ROW
+    num_cols = TILES_PER_ROW
+    tile_img = Image.new("RGB", (num_cols*8, num_rows*8))
+    for offset in range(0, len(tiledata), 64):
+        tile_num = offset//64
+        for y in range(8):
+            for x in range(8):
+                # Note that we're rotating each tile 90 degrees right as we do this
+                # Hence putting pixels at (7-y, x) instead of (x, y)
+                out_row = tile_num // TILES_PER_ROW
+                out_col = tile_num % TILES_PER_ROW
+                tile_img.putpixel((7-y + out_col*8, x + out_row*8), tiledata[offset+y*8+x])
+
+    tile_img.save(filename)
 
 
 def decode(file_list):

@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <map version="1.0" orientation="orthogonal" renderorder="right-down" width="28" height="32" tilewidth="8" tileheight="8" backgroundcolor="#000000">
  <tileset firstgid="1" name="tiles" tilewidth="8" tileheight="8">
-  <image source="../../tools/gfxrip/tiles.png" width="128" height="128"/>
+  <image source="tiles2.png" width="128" height="128"/>
  </tileset>
  <tileset firstgid="257" name="sprites" tilewidth="16" tileheight="16">
-  <image source="../../tools/gfxrip/sprites.png" width="128" height="256"/>
+  <image source="sprites.png" width="128" height="256"/>
  </tileset>
  <layer name="Tile Layer 1" width="28" height="32">
   <data encoding="base64" compression="zlib">

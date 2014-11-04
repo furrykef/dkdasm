@@ -24,7 +24,7 @@ __pycache__
 
 # gfxrip output
 sprites.png
-tiles.png
+tiles*.png
 
 
 # rest of file is standard .gitignore
