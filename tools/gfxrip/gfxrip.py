@@ -1,13 +1,11 @@
 #!/usr/bin/env python
 # Based on the old graphics ripper for the defunct Kong DX emulator
 # Written for Python 3.4
+import argparse
 import sys
 import zipfile
 
 from PIL import Image
-
-
-ROMSET = '../../roms/dkong.zip'
 
 
 TILES_PER_ROW = 16
@@ -98,14 +96,19 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
+    parser = argparse.ArgumentParser(description="Rip graphics from a Donkey Kong romset")
+    parser.add_argument("romset")
+    args = parser.parse_args(argv)
+
     ### TILES ###
-    doTiles(pal_girder, "tiles1.png")
-    doTiles(pal_rivet, "tiles2.png")
-    doTiles(pal_piefactory, "tiles3.png")
+    doTiles(args.romset, pal_girder, "tiles1.png")
+    doTiles(args.romset, pal_rivet, "tiles2.png")
+    doTiles(args.romset, pal_piefactory, "tiles3.png")
 
     ### SPRITES ###
-    top_spr_data = decode(top_spr_files)
-    bottom_spr_data = decode(bottom_spr_files)
+    # @TODO@ -- much duplicate code with doTiles
+    top_spr_data = decode(args.romset, top_spr_files)
+    bottom_spr_data = decode(args.romset, bottom_spr_files)
 
     # Convert paletted values to RGB values
     top_spr_data = [spr_palettes[pixel_num//128][color] for pixel_num, color in enumerate(top_spr_data)]
@@ -135,8 +138,8 @@ def main(argv=None):
     spr_img.save("sprites.png")
 
 
-def doTiles(palette, filename):
-    tiledata = decode(tile_files)
+def doTiles(romset, palette, filename):
+    tiledata = decode(romset, tile_files)
 
     # Convert paletted values to RGB values
     tiledata = [palette[color] for pixel_num, color in enumerate(tiledata)]
@@ -157,10 +160,10 @@ def doTiles(palette, filename):
     tile_img.save(filename)
 
 
-def decode(file_list):
+def decode(romset, file_list):
     outdata = [0] * 0x4000
     bitplane = 0
-    with zipfile.ZipFile(ROMSET, 'r') as zf:
+    with zipfile.ZipFile(romset, 'r') as zf:
         for filename in file_list:
             indata = zf.read(filename)
             for offset, value in enumerate(indata):

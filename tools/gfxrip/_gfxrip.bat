@@ -1,3 +1,3 @@
 @echo off
-gfxrip.py
+gfxrip.py ../../roms/dkong.zip
 pause

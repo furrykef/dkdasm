@@ -7,23 +7,22 @@
 # There's no need to burn it if you're modifying a DK3 board.
 #
 # Written for Python 3.4
+import argparse
 import os
 import sys
 import zipfile
 
 
 def main(argv=None):
-    myname = os.path.basename(sys.argv[0])
     if argv is None:
         argv = sys.argv[1:]
 
-    try:
-        infilename, outdir = argv
-    except ValueError:
-        print("Usage: {0} dkong.zip out-dir".format(myname), file=sys.stderr)
-        return 1
+    parser = argparse.ArgumentParser(description="Convert a Donkey Kong romset to run on Donkey Kong 3 hardware")
+    parser.add_argument('infilename')
+    parser.add_argument('outdir')
+    args = parser.parse_args(argv)
 
-    with zipfile.ZipFile(infilename, 'r') as inzip:
+    with zipfile.ZipFile(args.infilename, 'r') as inzip:
         prg1 = inzip.read('c_5et_g.bin')
         prg1 += inzip.read('c_5ct_g.bin')
         prg2 = inzip.read('c_5bt_g.bin')
@@ -47,6 +46,7 @@ def main(argv=None):
 
     # Create outdir if it does not exist
     # This is not recursive; it cannot create dirs that lead to it
+    outdir = args.outdir
     try:
         os.mkdir(outdir)
     except OSError:
@@ -76,8 +76,8 @@ def writefile(filename, data):
 
 
 def conv_proms(prom1_in, prom2_in):
-    prom1_out = []
-    prom2_out = []
+    prom1_out = bytearray()
+    prom2_out = bytearray()
     for nyb1, nyb2 in zip(prom1_in, prom2_in):
         byte = (nyb2 << 4) | nyb1
 
@@ -98,7 +98,7 @@ def conv_proms(prom1_in, prom2_in):
         prom1_out.append((color & 0xfff) >> 4)
         prom2_out.append(color & 0x0f)
 
-    return bytes(prom1_out), bytes(prom2_out)
+    return prom1_out, prom2_out
 
 if __name__ == '__main__':
     sys.exit(main())

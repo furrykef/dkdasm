@@ -3,26 +3,21 @@
 # This only rearranges the ROM data and renames ROMs so MAME can load it as a dkongjr set.
 # It doesn't modify any actual code or data (unless PATCH is True).
 # Written for Python 3.4
-import os.path
 import sys
 import zipfile
 
 
-# @TODO@ -- make this a command-line flag
-PATCH = False
-
-
 def main(argv=None):
-    myname = os.path.basename(sys.argv[0])
     if argv is None:
         argv = sys.argv[1:]
 
-    try:
-        infilename, outfilename = argv
-    except ValueError:
-        print("Usage: {0} dkong.zip output.zip".format(myname), file=sys.stderr)
+    parser = argparse.ArgumentParser(description="Convert a Donkey Kong romset to run on Donkey Kong Junior hardware")
+    parser.add_argument('infilename')
+    parser.add_argument('outfilename')
+    parser.add_argument('-p', '-patch', action='store_true')
+    args = parser.parse_args(argv)
 
-    with zipfile.ZipFile(infilename, 'r') as inzip:
+    with zipfile.ZipFile(args.infilename, 'r') as inzip:
         prg = inzip.read('c_5et_g.bin')
         prg += inzip.read('c_5ct_g.bin')
         prg += inzip.read('c_5bt_g.bin')
@@ -42,12 +37,12 @@ def main(argv=None):
         snd = inzip.read('s_3i_b.bin')
         snd += inzip.read('s_3j_b.bin')
 
-    if PATCH:
+    if args.patch:
         # NOP out the instruction that inverts bits from the 0x20 data port in sound ROM.
         # Otherwise the game will play the wrong sound cues.
         snd[0x539] = b'\x00'
 
-    with zipfile.ZipFile(outfilename, 'w') as outzip:
+    with zipfile.ZipFile(args.outfilename, 'w') as outzip:
         write_prg_rom(outzip, prg)
         outzip.writestr('djr1-v.3n', chr1)
         outzip.writestr('djr1-v.3p', chr2)

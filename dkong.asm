@@ -252,13 +252,19 @@ HSInitialPos    equ RAM+$36
 ; game to prompt for another name after entering the first.
 Unk6038         equ RAM+$38
 
-; #6040 = number of lives remaining for player 1
+; Number of lives remaining for player 1
+P1NumLives      equ RAM+$40
 
-; #6041 =
+; #6041-6047 = ???
+Unk6041         equ RAM+$41
 
-; #6048 = number of lives for player 2
+; Number of lives for player 2
+P2NumLives      equ RAM+$48
 
-; #6060 = ???
+; #6049-604f probably serve the same purpose as 6041-6047, but for player 2
+Unk6049         equ RAM+$49
+
+NumObstaclesJumped  equ RAM+$60
 
 ; #6080 - #608F are used for sounds - they are a buffer to set up a sound to be played on the hardware
 
@@ -1013,7 +1019,7 @@ FF = Extra Mario Icon
 
 0043  C9        RET                     ; return
 
-; contination of rst #30
+; continuation of rst #30
 ; used to check a screen number.  if it doesn't match, the 2nd level of subroutine is returned
 ; A is preloaded with the check value, in binary
 
@@ -2688,7 +2694,7 @@ Init:
 ; player 1 start
 
 0906  CD7709    CALL    #0977           ; subtract 1 credit and update screen credit counter
-0909  214860    LD      HL,#6048        ; load HL with RAM used for player 2
+0909  214860    LD      HL,P2NumLives        ; load HL with RAM used for player 2
 090C  0608      LD      B,#08           ; for B = 1 to 8
 090E  AF        XOR     A               ; A := 0
 
@@ -2703,26 +2709,26 @@ Init:
 
 0919  CD7709    CALL    #0977           ; subtract 1 credit and update screen credit counter
 091C  CD7709    CALL    #0977           ; subtract 1 credit and update screen credit counter
-091F  114860    LD      DE,#6048        ; load DE with RAM location used for player 2
+091F  114860    LD      DE,P2NumLives        ; load DE with RAM location used for player 2
 0922  3A2060    LD      A,(StartingLives)       ; load initial number of lives
 0925  12        LD      (DE),A          ; store into number of lives player 2
-0926  1C        INC     E               ; DE := #6049
+0926  1C        INC     E               ; DE := Unk6049
 0927  215E09    LD      HL,#095E        ; load HL with source data table start
 092A  010700    LD      BC,#0007        ; counter = 7
-092D  EDB0      LDIR                    ; copy #095E into #6049 for 7 bytes
+092D  EDB0      LDIR                    ; copy #095E into Unk6049 for 7 bytes
 092F  110101    LD      DE,#0101        ; load task #1, parameter 1.  clears player 1 and 2 scores and displays them.
 0932  CD9F30    CALL    #309F           ; insert task
 0935  210001    LD      HL,#0100        ; HL := #100
 
 0938  220E60    LD      (PlayerTurnB),HL      ; store HL into PlayerTurnB and TwoPlayerGame.  TwoPlayerGame is the number of players in the game
 093B  CD7408    CALL    #0874           ; clear the screen and sprites
-093E  114060    LD      DE,#6040        ; load DE with address for number of lives player 1
+093E  114060    LD      DE,P1NumLives        ; load DE with address for number of lives player 1
 0941  3A2060    LD      A,(StartingLives)       ; number of initial lives set with dip switches (3, 4, 5, or 6)
 0944  12        LD      (DE),A          ; store into number of lives
-0945  1C        INC     E               ; DE := #6041
+0945  1C        INC     E               ; DE := Unk6041
 0946  215E09    LD      HL,#095E        ; load HL with start of table data
 0949  010700    LD      BC,#0007        ; counter = 7
-094C  EDB0      LDIR                    ; copy #095E into #6041 for 7 bytes
+094C  EDB0      LDIR                    ; copy #095E into Unk6041 for 7 bytes
 094E  110001    LD      DE,#0100        ; load task #1, parameter 0.  clears player 1 score and displays it
 0951  CD9F30    CALL    #309F           ; insert task
 0954  AF        XOR     A               ; A := 0
@@ -2731,7 +2737,7 @@ Init:
 095A  320560    LD      (GameMode1),A   ; store into game mode1
 095D  C9        RET                     ; return
 
-; table data use in code above - gets copied to #6041 to #6041+7
+; table data use in code above - gets copied to Unk6041 to Unk6041+7
 
 095E  01 65 3A 01 00 00 00              ; #3A65 is start of table data for screens/levels
 
@@ -2789,10 +2795,10 @@ Init:
 ; jump from #0701 when GameMode2 == 1
 ; copy player data, set screen, set next game mode based on number of players
 
-09AB  214060    LD      HL,#6040        ; load HL with source data location
+09AB  214060    LD      HL,P1NumLives        ; load HL with source data location
 09AE  112862    LD      DE,#6228        ; load DE with destination data location.  start with remaining lives
 09B1  010800    LD      BC,#0008        ; byte counter set to 8
-09B4  EDB0      LDIR                    ; copy (HL) into (DE) from #6040 to #6048 into #6228 to #622F
+09B4  EDB0      LDIR                    ; copy (HL) into (DE) from P1NumLives to P2NumLives into #6228 to #622F
 09B6  2A2A62    LD      HL,(#622A)      ; EG #3A65.  start of table data for screens/levels
 09B9  7E        LD      A,(HL)          ; load screen number from table
 09BA  322762    LD      (#6227),A       ; store screen number
@@ -2841,7 +2847,7 @@ Init:
 
 ; arrive from #0701 when GameMode2 == 3
 
-09FE  214860    LD      HL,#6048        ; source location is ???
+09FE  214860    LD      HL,P2NumLives        ; source location is ???
 0A01  112862    LD      DE,#6228        ; destination is player lives remaining plus other player variables
 0A04  010800    LD      BC,#0008        ; byte counter set to 8
 0A07  EDB0      LDIR                    ; copy
@@ -4305,9 +4311,9 @@ Init:
 12F9  212862    LD      HL,#6228        ; load HL with address for number of lives remaining
 12FC  35        DEC     (HL)            ; one less life
 12FD  7E        LD      A,(HL)          ; load A with number of lives left
-12FE  114060    LD      DE,#6040        ; set destination address
+12FE  114060    LD      DE,P1NumLives        ; set destination address
 1301  010800    LD      BC,#0008        ; set counter
-1304  EDB0      LDIR                    ; copy (#6228) to (#6230) into (#6040) to (#6048).  copies data from player area to storage area for player 1
+1304  EDB0      LDIR                    ; copy (#6228) to (#6230) into (P1NumLives) to (P2NumLives).  copies data from player area to storage area for player 1
 1306  A7        AND     A               ; number of lives == 0 ?
 1307  C23413    JP      NZ,#1334        ; no, skip ahead
 
@@ -4354,7 +4360,7 @@ Init:
 134B  212862    LD      HL,#6228        ; load HL with number of lives remaining
 134E  35        DEC     (HL)            ; decrease
 134F  7E        LD      A,(HL)          ; load A with the number of lives remaining
-1350  114860    LD      DE,#6048        ; load DE with destination address
+1350  114860    LD      DE,P2NumLives        ; load DE with destination address
 1353  010800    LD      BC,#0008        ; set counter to 8
 1356  EDB0      LDIR                    ; copy
 1358  A7        AND     A               ; any lives left?
@@ -4378,7 +4384,7 @@ Init:
 137E  C9        RET                     ; return
 
 137F  0E17      LD      C,#17           ; C := #17
-1381  3A4060    LD      A,(#6040)       ; load A with number of lives left for player 1
+1381  3A4060    LD      A,(P1NumLives)       ; load A with number of lives left for player 1
 1384  A7        AND     A               ; player 1 has lives remaining?
 1385  C28A13    JP      NZ,#138A        ; yes, skip next step
 
@@ -4393,7 +4399,7 @@ Init:
 
 138F  DF        RST     #18             ; count down timer and only continue here if zero, else RET
 1390  0E17      LD      C,#17           ; C := #17
-1392  3A4860    LD      A,(#6048)       ; load A with number of lives for player 2
+1392  3A4860    LD      A,(P2NumLives)       ; load A with number of lives for player 2
 
 1395  34        INC     (HL)            ; increase timer ??? [EG HL = WaitTimerMSB]
 1396  A7        AND     A               ; player has lives remaining ?
@@ -4410,7 +4416,7 @@ Init:
 
 13A1  DF        RST     #18             ; count down timer and only continue here if zero, else RET
 13A2  0E17      LD      C,#17           ; C := #17
-13A4  3A4060    LD      A,(#6040)       ; load A with number of lives remaining for player1
+13A4  3A4060    LD      A,(P1NumLives)       ; load A with number of lives remaining for player1
 13A7  C39513    JP      #1395           ; jump back, rest of this sub is above
 
 
@@ -11028,7 +11034,7 @@ FF = Extra Mario Icon
 
 3E99  E1        POP     HL              ; restore HL
 3E9A  AF        XOR     A               ; A := 0
-3E9B  326060    LD      (#6060),A       ; clear counter for barrels jumped
+3E9B  326060    LD      (NumObstaclesJumped),A       ; clear counter for barrels jumped
 3E9E  060A      LD      B,#0A           ; For B = 1 to #A barrels
 3EA0  112000    LD      DE,#0020        ; load DE with offset
 3EA3  DD210067  LD      IX,#6700        ; load IX with start of barrel info table
@@ -11038,7 +11044,7 @@ FF = Extra Mario Icon
 3EAC  DD210064  LD      IX,#6400        ; start of fires table
 3EB0  CDC33E    CALL    #3EC3           ; check for fires being jumped
 
-3EB3  3A6060    LD      A,(#6060)       ; load A with counter for items jumped
+3EB3  3A6060    LD      A,(NumObstaclesJumped)       ; load A with counter for items jumped
 3EB6  A7        AND     A               ; nothing jumped ?
 3EB7  C8        RET     Z               ; yes, return
 
@@ -11092,9 +11098,9 @@ FF = Extra Mario Icon
 
 ; item was jumped
 
-3EF3  3A6060    LD      A,(#6060)       ; load A with counter of how many barrels/fires jumped
+3EF3  3A6060    LD      A,(NumObstaclesJumped)       ; load A with counter of how many barrels/fires jumped
 3EF6  3C        INC     A               ; increase it
-3EF7  326060    LD      (#6060),A       ; store
+3EF7  326060    LD      (NumObstaclesJumped),A       ; store
 
 3EFA  DD19      ADD     IX,DE           ; add offset for next barrel or fire
 3EFC  10C5      DJNZ    #3EC3           ; Next B

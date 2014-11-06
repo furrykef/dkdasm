@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Written for Python 3.4
-import os.path
 import sys
 import zipfile
 
@@ -41,22 +40,21 @@ class LineReader(object):
 def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
-    me = os.path.basename(argv[0])
 
-    try:
-        mmlname, inzipname, outzipname = argv
-    except ValueError:
-        print("Usage: {0} music.mml dkong.zip dkong-out.zip".format(me), file=sys.stderr)
-        return 1
+    parser = argparse.ArgumentParser(description="Insert music in MML format into a Donkey Kong ROM.")
+    parser.add_argument('mmlname')
+    parser.add_argument('inzipname')
+    parser.add_argument('outzipname')
+    args = parser.parse_args(argv)
 
-    with open(mmlname, 'r') as mmlfile:
+    with open(args.mmlname, 'r') as mmlfile:
         try:
             data = read_mml(mmlfile)
         except MMLError as e:
             print(e, file=sys.stderr)
             return 1
 
-    with zipfile.open(inzipname, 'r') as inzip:
+    with zipfile.open(args.inzipname, 'r') as inzip:
         snd_rom = inzip.read(SNDROM_NAME)
         patch_rom(snd_rom, PATTERN_DATA_OFFSET, data)
 
@@ -65,9 +63,11 @@ def main(argv=None):
 
     # Patch call to the routine formerly known as 0x4f8
     snd_rom[0x637] = '\xfe'
-    
 
-    with zipfile.open(outzipname, 'w') as outzip:
+    # Insert music data
+    @XXX@
+
+    with zipfile.open(args.outzipname, 'w') as outzip:
         outzip.writestr(SNDROM_NAME, data)
 
 
