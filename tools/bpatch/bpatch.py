@@ -50,8 +50,8 @@ def get_args(argv):
         description="Copy part or all of a file and insert it into "
                     "another file.",
         epilog="All numbers are in decimal unless prefixed with 0x (hex), 0b "
-              "(binary), or 0o (octal). Unless using one of these prefixes, a "
-              "nonzero number may not start with the digit 0."
+               "(binary), or 0o (octal). Unless using one of these prefixes, "
+               "a nonzero number may not start with the digit 0."
     )
     parser.add_argument('src')
     parser.add_argument('dest')
@@ -63,7 +63,7 @@ def get_args(argv):
     group = parser.add_mutually_exclusive_group()
     group.add_argument(
         '-d', '--dest-offset',
-        help="offset in destination file. "
+        help="offset in destination file to copy to. "
              "If not specified, the output file will be truncated"
     )
     group.add_argument(
