@@ -9,16 +9,23 @@ def main(argv=None):
     if argv is None:
         argv = sys.argv[1:]
 
-    parser = argparse.ArgumentParser(description="Copy part or all of a file and insert it into another file.")
+    parser = argparse.ArgumentParser(
+        description="Copy part or all of a file and insert it into "
+                    "another file."
+    )
     parser.add_argument('src')
     parser.add_argument('dest')
     parser.add_argument('-s', '--src-offset', default=0)
-    parser.add_argument('-d', '--dest-offset', default=0)
+    parser.add_argument('-d', '--dest-offset')
     parser.add_argument('-l', '--len', '--size', default=-1)
-    parser.add_argument('-t', '--truncate', action='store_true', help="Truncate output file before inserting")
     args = parser.parse_args(argv)
 
-    out_mode = 'wb' if args.truncate else 'r+b'
+    truncate = args.dest_offset is None
+    if truncate:
+        args.dest_offset = 0
+        out_mode = 'wb'
+    else:
+        out_mode = 'r+b'
 
     with open(args.src, 'rb') as infile:
         infile.seek(args.src_offset)

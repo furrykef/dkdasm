@@ -33,7 +33,7 @@ def main(argv=None):
         chr2 = inzip.read('v_3pt.bin') + b'\0'*0x800
         spr1 = inzip.read('l_4m_b.bin') + b'\0'*0x800
         spr2 = inzip.read('l_4n_b.bin') + b'\0'*0x800
-        spr3 = inzip.read('l_4r_b.bin') + b'\0'*0x800 
+        spr3 = inzip.read('l_4r_b.bin') + b'\0'*0x800
         spr4 = inzip.read('l_4s_b.bin') + b'\0'*0x800
         prom1 = inzip.read('c-2k.bpr')
         prom2 = inzip.read('c-2j.bpr')
@@ -52,22 +52,22 @@ def main(argv=None):
     except OSError:
         pass
 
-    writefile(outdir +'/dk3c.7b', prg1)
-    writefile(outdir +'/dk3c.7c', prg2)
-    writefile(outdir +'/dk3c.7d', prg3)
-    writefile(outdir +'/dk3c.7e', prg4)
-    writefile(outdir +'/dk3v.3n', chr1)
-    writefile(outdir +'/dk3v.3p', chr2)
-    writefile(outdir +'/dk3v.7c', spr1)
-    writefile(outdir +'/dk3v.7d', spr2)
-    writefile(outdir +'/dk3v.7e', spr3)
-    writefile(outdir +'/dk3v.7f', spr4)
-    writefile(outdir +'/dkc1-c.1d', prom1)
-    writefile(outdir +'/dkc1-c.1c', prom2)
-    writefile(outdir +'/dkc1-v.2n', prom3)
-    writefile(outdir +'/dk3c.5l', snd1)
-    writefile(outdir +'/dk3c.6h', snd2)
-    writefile(outdir +'/dkc1-v.5e', adr)
+    writefile(outdir + '/dk3c.7b', prg1)
+    writefile(outdir + '/dk3c.7c', prg2)
+    writefile(outdir + '/dk3c.7d', prg3)
+    writefile(outdir + '/dk3c.7e', prg4)
+    writefile(outdir + '/dk3v.3n', chr1)
+    writefile(outdir + '/dk3v.3p', chr2)
+    writefile(outdir + '/dk3v.7c', spr1)
+    writefile(outdir + '/dk3v.7d', spr2)
+    writefile(outdir + '/dk3v.7e', spr3)
+    writefile(outdir + '/dk3v.7f', spr4)
+    writefile(outdir + '/dkc1-c.1d', prom1)
+    writefile(outdir + '/dkc1-c.1c', prom2)
+    writefile(outdir + '/dkc1-v.2n', prom3)
+    writefile(outdir + '/dk3c.5l', snd1)
+    writefile(outdir + '/dk3c.6h', snd2)
+    writefile(outdir + '/dkc1-v.5e', adr)
 
 
 def writefile(filename, data):
