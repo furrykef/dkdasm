@@ -47,7 +47,7 @@ def get_args(argv):
                     "another file.",
         epilog="All numbers are in decimal unless prefixed with 0x (hex), 0b "
               "(binary), or 0o (octal). Unless using one of these prefixes, a "
-              "non-zero length may not start with the digit 0."
+              "nonzero number may not start with the digit 0."
     )
     parser.add_argument('src')
     parser.add_argument('dest')
