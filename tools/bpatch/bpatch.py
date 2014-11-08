@@ -15,9 +15,12 @@ def main(argv=None):
     dest = args.dest
     src_offset = int(args.src_offset, 0)
     dest_offset = args.dest_offset
+    append_mode = args.append
     length = int(args.len, 0)
 
-    if dest_offset is None:
+    if append_mode:
+        out_mode = 'ab'
+    elif dest_offset is None:
         dest_offset = 0
         out_mode = 'wb'                     # truncate output
     else:
@@ -34,7 +37,8 @@ def main(argv=None):
 
     try:
         with open(dest, out_mode) as outfile:
-            outfile.seek(dest_offset)
+            if not append_mode:
+                outfile.seek(dest_offset)
             outfile.write(data)
     except OSError as e:
         print("Error writing {0}: {1}".format(dest, e), file=sys.stderr)
@@ -55,16 +59,26 @@ def get_args(argv):
         '-s', '--src-offset',
         default='0',
         help="offset in source file to copy from. Default 0")
-    parser.add_argument(
+
+    group = parser.add_mutually_exclusive_group()
+    group.add_argument(
         '-d', '--dest-offset',
         help="offset in destination file. "
              "If not specified, the output file will be truncated"
     )
+    group.add_argument(
+        '-a', '--append',
+        action='store_true',
+        help="append to end of destination file. "
+             "Mutually exclusive with -d"
+    )
+
     parser.add_argument(
         '-l', '--len', '--size',
         default='-1',
         help="number of bytes to copy. "
              "If not specified, copy whole file")
+
     return parser.parse_args(argv)
 
 
