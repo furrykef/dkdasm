@@ -99,7 +99,7 @@
 
 ; Play death music (interrupt handler)
 ; ------------------------------------
-; This tune has three parts.
+; This tune has two main parts.
 ; The first part is a rapid series of descending notes. It's generated mathematically, like a sound effect,
 ; so we'll call it the SFX part.
 ; The second part is a brief melody using the music engine, so we'll call it the melodic part.

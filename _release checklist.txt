@@ -1,0 +1,5 @@
+DK Junior and DK3 conversions should init all regs specific to this hardware (e.g. gfx bankswitching)
+
+The hacking kit distribution should contain:
+* cpchunk (if used)
+* any assemblers we use (Z80, 6502, etc.)

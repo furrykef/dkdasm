@@ -1,9 +1,7 @@
 # Donkey Kong hacking kit
 
 ## What are these ASM files?
-A complete, commented disassembly of the arcade version of Donkey Kong. It is intended to easily be used by humans for any purpose.
-
-At least, that's what we're aiming for. As it is, we've got quite a ways to go.
+Eventually they should be a complete, commented disassembly of the arcade version of Donkey Kong, easily usable by humans for any purpose. But we've still got quite a ways to go.
 
 In these files, we do not aim to modify the game in any way, not even to fix bugs (and there are a few!). Nothing stops you from making a fork and making whatever modifications you like, however, and in fact making this possible and practical is part of our aim.
 
